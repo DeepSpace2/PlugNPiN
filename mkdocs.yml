@@ -1,0 +1,48 @@
+# yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
+
+site_name: PlugNPiN
+site_url: https://deepspace2.github.io/plugnpin
+repo_url: https://github.com/deepspace2/plugnpin
+theme:
+  name: material
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - content.code.copy
+    - navigation.top
+    - search.highlight
+    - search.share
+    - search.suggest
+    - toc.integrate
+  palette:
+    # auto-mode
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: "material/brightness-auto"
+        name: ""
+
+    # Palette toggle for light mode
+    - scheme: default
+      media: "(prefers-color-scheme: light)"
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - scheme: slate
+      media: "(prefers-color-scheme: dark)"
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+plugins:
+  - gh-admonitions

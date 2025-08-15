@@ -1,0 +1,32 @@
+name: Publish Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  prepare-tags:
+    runs-on: ubuntu-latest
+    outputs:
+      tags: ${{ steps.meta.outputs.tags }}
+      labels: ${{ steps.meta.outputs.labels }}
+    steps:
+      - name: Lowercase repository name
+        id: repo
+        run: echo "LOWERCASE_REPO=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ env.LOWERCASE_REPO }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=raw,value=latest
+
+  build-image:
+    needs: prepare-tags
+    uses: ./.github/workflows/reusable-docker-build.yml
+    with:
+      tags: ${{ needs.prepare-tags.outputs.tags }}
+      labels: ${{ needs.prepare-tags.outputs.labels }}

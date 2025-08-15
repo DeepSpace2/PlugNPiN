@@ -1,0 +1,50 @@
+name: PR Build and Push
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      src: ${{ steps.filter.outputs.src }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            src:
+              - '.github/release-drafter.yml'
+              - '.github/workflows/draft-release.yml'
+              - '.github/workflows/pr-build.yml'
+              - '.github/workflows/release.yml'
+              - '.github/workflows/reusable-docker-build.yml'
+              - 'pkg/**'
+              - 'main.go'
+              - 'go.*'
+              - 'Dockerfile'
+              - '.dockerignore'
+
+  prepare-tags:
+    needs: changes
+    if: ${{ needs.changes.outputs.src == 'true' }}
+    runs-on: ubuntu-latest
+    outputs:
+      tags: ${{ steps.prep.outputs.tags }}
+    steps:
+      - name: Prepare image tags
+        id: prep
+        run: |
+          REPO=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')
+          BRANCH=$(echo ${{ github.head_ref }} | sed 's/[^a-zA-Z0-9.-]/-/g' | head -c 128 | tr '[:upper:]' '[:lower:]')
+          echo "tags=ghcr.io/$REPO:$BRANCH" >> $GITHUB_OUTPUT
+
+  build-image:
+    needs: prepare-tags
+    uses: ./.github/workflows/reusable-docker-build.yml
+    with:
+      tags: ${{ needs.prepare-tags.outputs.tags }}
+      labels: ""

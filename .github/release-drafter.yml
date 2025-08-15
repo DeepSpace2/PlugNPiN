@@ -1,0 +1,46 @@
+# Controls the name and tag of the draft release
+name-template: "v$RESOLVED_VERSION"
+tag-template: "v$RESOLVED_VERSION"
+
+exclude-labels:
+  - "docs"
+  - "ci"
+  - "skip-changelog"
+
+# Defines how to categorize pull requests in the release notes
+categories:
+  - title: "💥 Breaking Changes"
+    labels:
+      - "breaking-change"
+  - title: "🚀 Features"
+    labels:
+      - "feature"
+  - title: "🐛 Bug Fixes"
+    labels:
+      - "fix"
+  - title: "🧰 Maintenance"
+    labels:
+      - "chore"
+
+# Defines the template for each line in the changelog
+change-template: "- $TITLE @$AUTHOR (#$NUMBER)"
+
+# Defines the overall template for the release notes
+template: |
+  ## What's New
+
+  $CHANGES
+
+# Defines how to calculate the next version number
+version-resolver:
+  major:
+    labels:
+      - "breaking-change"
+  minor:
+    labels:
+      - "feature"
+  patch:
+    labels:
+      - "fix"
+      - "chore"
+  default: minor
