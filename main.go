@@ -61,6 +61,8 @@ func run(dockerClient *docker.Client, piholeClient *pihole.Client, npmClient *np
 		return
 	}
 
+	log.Printf("Found %v containers", len(containers))
+
 	for _, container := range containers {
 		handleContainer(container, piholeClient, npmClient, dryRun)
 	}
