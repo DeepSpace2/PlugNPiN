@@ -1,3 +1,7 @@
+[![Go Report Card](https://goreportcard.com/badge/github.com/DeepSpace2/PlugNPiN)](https://goreportcard.com/report/github.com/DeepSpace2/PlugNPiN)
+![Build Status](https://github.com/DeepSpace2/PlugNPiN/actions/workflows/release.yml/badge.svg)
+[![Release](https://img.shields.io/github/v/release/DeepSpace2/PlugNPiN)](https://github.com/DeepSpace2/PlugNPiN/releases)
+
 # 🔌 PlugNPiN
 
 **Plug and play your docker containers into Pi-Hole & Nginx Proxy Manager**
@@ -12,7 +16,6 @@ PlugNPiN scans for Docker containers with the following labels:
 
 - `plugNPiN.ip` - The IP address and port of the container (e.g., `192.168.1.100:8080`).
 - `plugNPiN.url` - The desired URL for the service (e.g., `my-service.local`).
-
 
 When a container with these labels is found, PlugNPiN will:
 
