@@ -38,12 +38,15 @@ func handleContainer(container container.Summary, piholeClient *pihole.Client, n
 		msg += ". In dry run mode, not doing anything."
 		log.Println(msg)
 	} else {
-		msg += ", adding entries to pi-hole and nginx proxy mananger."
+		msg += ", adding entries to Pi-Hole and Nginx Proxy Manager."
 		log.Println(msg)
 
-		piholeClient.AddDNSHostEntry(url, ip)
+		err := piholeClient.AddDNSHostEntry(url, ip)
+		if err != nil {
+			log.Printf("ERROR failed to add entry to Pi-Hole: %v", err)
+		}
 
-		npmClient.AddProxyHost(npm.ProxyHost{
+		err = npmClient.AddProxyHost(npm.ProxyHost{
 			DomainNames:   []string{url},
 			ForwardScheme: "http",
 			ForwardHost:   ip,
@@ -51,6 +54,9 @@ func handleContainer(container container.Summary, piholeClient *pihole.Client, n
 			Locations:     []npm.Location{},
 			Meta:          map[string]any{},
 		})
+		if err != nil {
+			log.Printf("ERROR failed to add entry to Nginx Proxy Manager: %v", err)
+		}
 	}
 }
 
@@ -88,7 +94,7 @@ func main() {
 	piHolePassword := envVars["PIHOLE_PASSWORD"]
 	err = piholeClient.Login(piHolePassword)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("ERROR failed to login to Pi-Hole: %v", err)
 	}
 
 	npmHost := envVars["NGINX_PROXY_MANAGER_HOST"]
@@ -97,7 +103,7 @@ func main() {
 	npmClient := npm.NewClient(npmHost, npmUser, npmPassword)
 	err = npmClient.Login()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("ERROR failed to login to Nginx Proxy Manager: %v", err)
 	}
 
 	dockerClient, err := docker.NewClient()

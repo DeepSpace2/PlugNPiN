@@ -2,7 +2,6 @@ package clients
 
 import (
 	"io"
-	"log"
 	"net/http"
 	"strings"
 )
@@ -13,84 +12,78 @@ func setHeaders(req *http.Request, headers map[string]string) {
 	}
 }
 
-func Post(client *http.Client, path string, headers map[string]string, data *string) (string, int) {
+func Post(client *http.Client, path string, headers map[string]string, data *string) (string, int, error) {
 	req, err := http.NewRequest(
 		http.MethodPost,
 		path,
 		strings.NewReader(*data),
 	)
 	if err != nil {
-		log.Fatal(err)
+		return "", 0, err
 	}
 
 	setHeaders(req, headers)
 
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Fatal(err)
+		return "", 0, err
 	}
 
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatal(err)
+		return "", 0, err
 	}
 
-	return string(body), resp.StatusCode
+	return string(body), resp.StatusCode, nil
 }
 
-func Get(client *http.Client, path string, headers map[string]string) (string, int) {
+func Get(client *http.Client, path string, headers map[string]string) (string, int, error) {
 	req, err := http.NewRequest(
 		http.MethodGet,
 		path,
 		nil,
 	)
 	if err != nil {
-		log.Fatal(err)
+		return "", 0, err
 	}
 
 	setHeaders(req, headers)
 
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Fatal(err)
-	}
-	if resp.StatusCode >= 400 {
-		log.Fatal(resp.StatusCode)
+		return "", 0, err
 	}
 
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatal(err)
+		return "", 0, err
 	}
-	return string(body), resp.StatusCode
+	return string(body), resp.StatusCode, nil
 }
 
-func Patch(client *http.Client, path string, headers map[string]string, data string) (string, int) {
+func Patch(client *http.Client, path string, headers map[string]string, data string) (string, int, error) {
 	req, err := http.NewRequest(
 		http.MethodPatch,
 		path,
 		strings.NewReader(data),
 	)
 	if err != nil {
-		log.Fatal(err)
+		return "", 0, nil
 	}
 
 	setHeaders(req, headers)
 
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Fatal(err)
-	}
-	if resp.StatusCode >= 400 {
-		log.Fatal(resp.StatusCode)
+		return "", 0, err
 	}
 
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatal(err)
+		return "", 0, err
 	}
-	return string(body), resp.StatusCode
+	return string(body), resp.StatusCode, nil
 }

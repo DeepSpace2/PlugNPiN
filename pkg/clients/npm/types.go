@@ -5,6 +5,13 @@ type LoginRequest struct {
 	Secret   string `json:"secret"`
 }
 
+type ErrorResponse struct {
+	Error struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	} `json:"error"`
+}
+
 type Token struct {
 	Token string `json:"token"`
 }

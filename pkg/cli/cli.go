@@ -11,7 +11,7 @@ type f struct {
 var flags f = f{}
 
 func ParseFlags() f {
-	flag.BoolVarP(&flags.DryRun, "dry-run", "d", false, "Simulates the process of adding DNS records and proxy hosts without making any actual changes to Pi-hole or Nginx Proxy Manager.")
+	flag.BoolVarP(&flags.DryRun, "dry-run", "d", false, "Simulates the process of adding DNS records and proxy hosts without making any actual changes to Pi-Hole or Nginx Proxy Manager.")
 	flag.Parse()
 	return flags
 }

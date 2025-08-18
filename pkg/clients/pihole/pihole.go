@@ -2,6 +2,7 @@ package pihole
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -31,13 +32,15 @@ func NewClient(baseURL string) *Client {
 
 func (p *Client) Login(password string) error {
 	loginPayload := fmt.Sprintf(`{"password": "%v"}`, password)
-	loginResponseString, statusCode := clients.Post(&p.Client, p.baseURL+"/auth", headers, &loginPayload)
-
+	loginResponseString, statusCode, err := clients.Post(&p.Client, p.baseURL+"/auth", headers, &loginPayload)
+	if err != nil {
+		return err
+	}
 	var resp loginResponse
 	json.Unmarshal([]byte(loginResponseString), &resp)
 
 	if statusCode >= 400 || resp.Session.Sid == "" {
-		return fmt.Errorf("ERROR loging in to Pi-Hole: %v", loginResponseString)
+		return fmt.Errorf(resp.Session.Message)
 	}
 
 	p.sid = resp.Session.Sid
@@ -59,14 +62,16 @@ func dnsHostEntryToRawEntry(domain DomainName, ip IP) string {
 	return fmt.Sprintf("%v %v", ip, domain)
 }
 
-func (p *Client) getDNSHosts() DNSHostEntries {
+func (p *Client) getDNSHosts() (DNSHostEntries, error) {
 	if p.sid == "" {
 		// TODO:
 		log.Fatal("no SID")
 	}
 	headers["X-FTL-SID"] = p.sid
-	configResponseString, _ := clients.Get(&p.Client, p.baseURL+"/config", headers)
-
+	configResponseString, _, err := clients.Get(&p.Client, p.baseURL+"/config", headers)
+	if err != nil {
+		return nil, err
+	}
 	var resp configResponse
 	json.Unmarshal([]byte(configResponseString), &resp)
 
@@ -74,20 +79,23 @@ func (p *Client) getDNSHosts() DNSHostEntries {
 	for _, rawDNSHostEntry := range resp.Config.DNS.Hosts {
 		domain, ip, err := rawDNSHostRawEntryToEntry(rawDNSHostEntry)
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 		dnsHostEntries[domain] = ip
 	}
-	return dnsHostEntries
+	return dnsHostEntries, nil
 }
 
-func (p *Client) AddDNSHostEntry(domain, ip string) {
-	existingEntries := p.getDNSHosts()
+func (p *Client) AddDNSHostEntry(domain, ip string) error {
+	existingEntries, err := p.getDNSHosts()
+	if err != nil {
+		return err
+	}
 	d := DomainName(domain)
 	_, exists := existingEntries[d]
 
 	if exists {
-		return
+		return nil
 	}
 
 	existingEntries[d] = IP(ip)
@@ -102,7 +110,7 @@ func (p *Client) AddDNSHostEntry(domain, ip string) {
 
 	payloadString, err := json.Marshal(payload)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	if p.sid == "" {
@@ -110,8 +118,13 @@ func (p *Client) AddDNSHostEntry(domain, ip string) {
 		log.Fatal("no SID")
 	}
 	headers["X-FTL-SID"] = p.sid
-	resp, _ := clients.Patch(&p.Client, p.baseURL+"/config", headers, string(payloadString))
+	resp, statusCode, err := clients.Patch(&p.Client, p.baseURL+"/config", headers, string(payloadString))
+	if err != nil {
+		return err
+	}
+	if statusCode >= 400 {
+		return errors.New(resp)
+	}
 
-	var r configResponse
-	json.Unmarshal([]byte(resp), &r)
+	return nil
 }
