@@ -2,6 +2,7 @@ package npm
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -37,14 +38,20 @@ func (n *Client) Login() error {
 	}
 	payloadBytes, err := json.Marshal(loginPayload)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	payloadString := string(payloadBytes)
-	loginResponseString, statusCode := clients.Post(&n.Client, n.baseURL+"/tokens", headers, &payloadString)
+	loginResponseString, statusCode, err := clients.Post(&n.Client, n.baseURL+"/tokens", headers, &payloadString)
+	if err != nil {
+		return err
+	}
+
 	var resp Token
-	json.Unmarshal([]byte(loginResponseString), &resp)
-	if statusCode >= 400 || resp.Token == "" {
-		return fmt.Errorf("ERROR loging in to Nginx Proxy Manager: %v", loginResponseString)
+	err = json.Unmarshal([]byte(loginResponseString), &resp)
+	if statusCode >= 400 || err != nil || resp.Token == "" {
+		var loginError ErrorResponse
+		json.Unmarshal([]byte(loginResponseString), &loginError)
+		return errors.New(loginError.Error.Message)
 	}
 	n.token = resp.Token
 	headers["authorization"] = "Bearer " + n.token
@@ -52,9 +59,12 @@ func (n *Client) Login() error {
 }
 
 func (n *Client) getProxyHosts() (map[string]string, error) {
-	proxyHostsString, statusCode := clients.Get(&n.Client, n.baseURL+"/nginx/proxy-hosts", headers)
-	if statusCode >= 400 {
-		return nil, fmt.Errorf("ERROR getting proxy hosts from nginx proxy manager")
+	proxyHostsString, statusCode, err := clients.Get(&n.Client, n.baseURL+"/nginx/proxy-hosts", headers)
+	if statusCode == 401 {
+		n.refreshToken()
+		return n.getProxyHosts()
+	} else if statusCode >= 400 {
+		return nil, err
 	}
 	var proxyHosts []ProxyHost
 	existingProxyHostsMap := map[string]string{}
@@ -69,34 +79,45 @@ func (n *Client) getProxyHosts() (map[string]string, error) {
 	return existingProxyHostsMap, nil
 }
 
-func (n *Client) refreshToken() {
-	log.Println("Refreshing nginx proxy manager token")
-	if err := n.Login(); err != nil {
-		log.Fatal(err)
-	}
+func (n *Client) refreshToken() error {
+	log.Println("Refreshing Nginx Proxy Manager token")
+	return n.Login()
 }
 
-func (n *Client) AddProxyHost(host ProxyHost) {
+func (n *Client) AddProxyHost(host ProxyHost) error {
 	existingProxyHosts, err := n.getProxyHosts()
 	if err != nil {
-		n.refreshToken()
-		existingProxyHosts, _ = n.getProxyHosts()
+		return err
 	}
-
 	for _, domainName := range host.DomainNames {
 		if _, exists := existingProxyHosts[domainName]; exists {
-			return
+			return nil
 		}
 	}
 
 	payloadBytes, err := json.Marshal(host)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+
 	payloadString := string(payloadBytes)
-	_, statusCode := clients.Post(&n.Client, n.baseURL+"/nginx/proxy-hosts", headers, &payloadString)
-	if statusCode == 401 {
-		n.refreshToken()
-		clients.Post(&n.Client, n.baseURL+"/nginx/proxy-hosts", headers, &payloadString)
+	resp, statusCode, err := clients.Post(&n.Client, n.baseURL+"/nginx/proxy-hosts", headers, &payloadString)
+	if err != nil {
+		return err
 	}
+	if statusCode == 401 {
+		err := n.refreshToken()
+		if err != nil {
+			return err
+		}
+		_, _, err = clients.Post(&n.Client, n.baseURL+"/nginx/proxy-hosts", headers, &payloadString)
+		if err != nil {
+			return err
+		}
+	} else {
+		var errorResponse ErrorResponse
+		json.Unmarshal([]byte(resp), &errorResponse)
+		return errors.New(errorResponse.Error.Message)
+	}
+	return nil
 }
