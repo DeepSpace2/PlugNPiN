@@ -1,51 +1,45 @@
 package config
 
 import (
-	"fmt"
+	"errors"
 	"log"
-	"os"
 	"time"
 
+	"github.com/caarlos0/env/v11"
 	"github.com/joho/godotenv"
 )
 
-func GetEnvVars() (map[string]string, error) {
-	_ = godotenv.Load()
-	envVars := map[string]string{}
-	for _, mandatoryEnvVar := range []string{
-		"PIHOLE_HOST",
-		"PIHOLE_PASSWORD",
-		"NGINX_PROXY_MANAGER_HOST",
-		"NGINX_PROXY_MANAGER_USERNAME",
-		"NGINX_PROXY_MANAGER_PASSWORD",
-	} {
-		if value, exists := os.LookupEnv(mandatoryEnvVar); !exists {
-			return nil, fmt.Errorf("missing env var %v", mandatoryEnvVar)
-		} else {
-			envVars[mandatoryEnvVar] = value
-		}
-	}
+type Config struct {
+	NpmHost        string `env:"NGINX_PROXY_MANAGER_HOST,notEmpty"`
+	NpmPassword    string `env:"NGINX_PROXY_MANAGER_PASSWORD,notEmpty"`
+	NpmUsername    string `env:"NGINX_PROXY_MANAGER_USERNAME,notEmpty"`
+	PiholeHost     string `env:"PIHOLE_HOST,notEmpty"`
+	PiholePassword string `env:"PIHOLE_PASSWORD,notEmpty"`
 
-	for nonMandatoryEnvVar, defaultValue := range map[string]string{
-		"RUN_INTERVAL": "1h",
-	} {
-		var valueToSet string
-		if value, exists := os.LookupEnv(nonMandatoryEnvVar); !exists {
-			log.Printf("Env var '%v' is not set, using default value '%v'", nonMandatoryEnvVar, defaultValue)
-			valueToSet = defaultValue
-		} else {
-			valueToSet = value
-		}
-		envVars[nonMandatoryEnvVar] = valueToSet
-	}
-
-	return envVars, nil
+	DockerHost  string        `env:"DOCKER_HOST"`
+	RunInterval time.Duration `env:"RUN_INTERVAL" envDefault:"1h"`
 }
 
-func ParseRunInterval(runIntervalStr string) time.Duration {
-	runInterval, err := time.ParseDuration(runIntervalStr)
-	if err != nil || runInterval < 0 {
-		log.Fatalf("Invalid RUN_INTERVAL: %v", err)
+func GetEnvVars() (*Config, error) {
+	_ = godotenv.Load()
+	var config Config
+	if err := env.ParseWithOptions(&config, env.Options{
+		OnSet: func(tag string, value any, isDefault bool) {
+			if isDefault {
+				log.Printf(`env: environment variable "%v" is not set, using default value "%v"`, tag, value)
+			}
+		},
+	}); err != nil {
+		return nil, err
 	}
-	return runInterval
+
+	if !validateRunInterval(config.RunInterval) {
+		return nil, errors.New(`env: environment variable "RUN_INTERVAL" must be >= 0`)
+	}
+
+	return &config, nil
+}
+
+func validateRunInterval(runInterval time.Duration) bool {
+	return runInterval >= 0
 }
