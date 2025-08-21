@@ -78,29 +78,22 @@ func run(dockerClient *docker.Client, piholeClient *pihole.Client, npmClient *np
 func main() {
 	cliFlags := cli.ParseFlags()
 
-	envVars, err := config.GetEnvVars()
+	conf, err := config.GetEnvVars()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	runIntervalStr := envVars["RUN_INTERVAL"]
-	runInterval := config.ParseRunInterval(runIntervalStr)
-	if runInterval > 0 {
-		log.Printf("Will run every %v", runIntervalStr)
+	if conf.RunInterval > 0 {
+		log.Printf("Will run every %v", conf.RunInterval)
 	}
 
-	piholeHost := envVars["PIHOLE_HOST"]
-	piholeClient := pihole.NewClient(piholeHost)
-	piHolePassword := envVars["PIHOLE_PASSWORD"]
-	err = piholeClient.Login(piHolePassword)
+	piholeClient := pihole.NewClient(conf.PiholeHost)
+	err = piholeClient.Login(conf.PiholePassword)
 	if err != nil {
 		log.Fatalf("ERROR failed to login to Pi-Hole: %v", err)
 	}
 
-	npmHost := envVars["NGINX_PROXY_MANAGER_HOST"]
-	npmUser := envVars["NGINX_PROXY_MANAGER_USERNAME"]
-	npmPassword := envVars["NGINX_PROXY_MANAGER_PASSWORD"]
-	npmClient := npm.NewClient(npmHost, npmUser, npmPassword)
+	npmClient := npm.NewClient(conf.NpmHost, conf.NpmUsername, conf.NpmPassword)
 	err = npmClient.Login()
 	if err != nil {
 		log.Fatalf("ERROR failed to login to Nginx Proxy Manager: %v", err)
@@ -115,15 +108,15 @@ func main() {
 
 	run(dockerClient, piholeClient, npmClient, cliFlags.DryRun)
 
-	if runInterval == 0 {
+	if conf.RunInterval == 0 {
 		log.Println("RUN_INTERVAL is 0, exiting")
 		return
 	}
 
-	ticker := time.NewTicker(runInterval)
+	ticker := time.NewTicker(conf.RunInterval)
 	defer ticker.Stop()
 
-	log.Printf("Will run again in %v. Press Ctrl+C to exit.", runInterval)
+	log.Printf("Will run again in %v. Press Ctrl+C to exit.", conf.RunInterval)
 
 	shutdownChan := make(chan os.Signal, 1)
 	signal.Notify(shutdownChan, syscall.SIGINT, syscall.SIGTERM)
@@ -132,7 +125,7 @@ func main() {
 		select {
 		case <-ticker.C:
 			run(dockerClient, piholeClient, npmClient, cliFlags.DryRun)
-			log.Printf("Will run again in %v. Press Ctrl+C to exit.", runInterval)
+			log.Printf("Will run again in %v. Press Ctrl+C to exit.", conf.RunInterval)
 		case <-shutdownChan:
 			log.Println("Shutdown signal received, exiting.")
 			return
