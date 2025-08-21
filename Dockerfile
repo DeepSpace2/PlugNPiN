@@ -10,7 +10,7 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o auto_pi_hole_npm main.go
+RUN go build -o plugnpin main.go
 
 FROM alpine:3.22.1
 
@@ -20,7 +20,7 @@ RUN mkdir /root/.docker && echo "{}" > /root/.docker/config.json
 
 WORKDIR /app
 
-COPY --from=builder /app/auto_pi_hole_npm .
+COPY --from=builder /app/plugnpin .
 
-CMD [ "./auto_pi_hole_npm" ]
+CMD [ "./plugnpin" ]
 
