@@ -24,8 +24,11 @@ jobs:
             type=semver,pattern={{version}}
             type=raw,value=latest
 
+  test:
+    uses: ./.github/workflows/reusable-unittests.yml
+
   build-image:
-    needs: prepare-tags
+    needs: [prepare-tags, test]
     uses: ./.github/workflows/reusable-docker-build.yml
     with:
       tags: ${{ needs.prepare-tags.outputs.tags }}
