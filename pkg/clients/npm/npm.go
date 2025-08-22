@@ -114,7 +114,7 @@ func (n *Client) AddProxyHost(host ProxyHost) error {
 		if err != nil {
 			return err
 		}
-	} else {
+	} else if statusCode >= 400 {
 		var errorResponse ErrorResponse
 		json.Unmarshal([]byte(resp), &errorResponse)
 		return errors.New(errorResponse.Error.Message)
