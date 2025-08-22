@@ -4,7 +4,7 @@ on:
   workflow_call:
 
 jobs:
-  test:
+  run-tests:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -13,7 +13,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24.5'
+          go-version: "1.24.5"
 
       - name: Run tests with coverage
         run: go test -coverprofile=coverage.out ./...
@@ -23,3 +23,17 @@ jobs:
         with:
           name: coverage-report
           path: coverage.out
+
+  add-coverage:
+    name: "Add coverage"
+    runs-on: ubuntu-latest
+    needs: run-tests
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: fgrosse/go-coverage-report@v1.1.1
+        with:
+          coverage-artifact-name: "coverage-report"
+          coverage-file-name: "coverage.out"
