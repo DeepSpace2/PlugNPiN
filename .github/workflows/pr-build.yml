@@ -48,3 +48,8 @@ jobs:
     with:
       tags: ${{ needs.prepare-tags.outputs.tags }}
       labels: ""
+
+  test:
+    needs: changes
+    if: ${{ needs.changes.outputs.src == 'true' }}
+    uses: ./.github/workflows/reusable-unittests.yml

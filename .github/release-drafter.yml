@@ -3,9 +3,10 @@ name-template: "v$RESOLVED_VERSION"
 tag-template: "v$RESOLVED_VERSION"
 
 exclude-labels:
-  - "docs"
   - "ci"
+  - "docs"
   - "skip-changelog"
+  - "tests"
 
 # Defines how to categorize pull requests in the release notes
 categories:
