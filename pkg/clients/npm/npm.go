@@ -121,3 +121,8 @@ func (n *Client) AddProxyHost(host ProxyHost) error {
 	}
 	return nil
 }
+
+func (n *Client) DeleteProxyHost(domain string) error {
+	log.Printf("STUB: deleting proxy host for %s", domain)
+	return nil
+}

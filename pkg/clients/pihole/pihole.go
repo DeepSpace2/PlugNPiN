@@ -128,3 +128,8 @@ func (p *Client) AddDNSHostEntry(domain, ip string) error {
 
 	return nil
 }
+
+func (p *Client) DeleteDNSHostEntry(domain, ip string) error {
+	log.Printf("STUB: deleting DNS host entry for %s (%s)", domain, ip)
+	return nil
+}

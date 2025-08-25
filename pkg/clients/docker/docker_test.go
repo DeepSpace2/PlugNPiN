@@ -109,7 +109,7 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ip, url, port, err := GetValuesFromContainerLabels(tc.container)
+			ip, url, port, err := GetValuesFromLabels(tc.container.Labels)
 
 			assert.Equal(t, tc.expectedIP, ip)
 			assert.Equal(t, tc.expectedURL, url)
@@ -118,3 +118,4 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 		})
 	}
 }
+

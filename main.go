@@ -1,78 +1,31 @@
 package main
 
 import (
-	"fmt"
+	"context"
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
-	"time"
-
-	"github.com/docker/docker/api/types/container"
 
 	"github.com/deepspace2/plugnpin/pkg/cli"
 	"github.com/deepspace2/plugnpin/pkg/clients/docker"
 	"github.com/deepspace2/plugnpin/pkg/clients/npm"
 	"github.com/deepspace2/plugnpin/pkg/clients/pihole"
 	"github.com/deepspace2/plugnpin/pkg/config"
-	"github.com/deepspace2/plugnpin/pkg/errors"
+	"github.com/deepspace2/plugnpin/pkg/processor"
 )
 
-func handleContainer(container container.Summary, piholeClient *pihole.Client, npmClient *npm.Client, dryRun bool) {
-	parsedContainerName := docker.GetParsedContainerName(container)
+func shutdown(cancelCtx context.CancelFunc, wg *sync.WaitGroup) {
+	shutdownChan := make(chan os.Signal, 1)
+	signal.Notify(shutdownChan, syscall.SIGINT, syscall.SIGTERM)
 
-	ip, url, port, err := docker.GetValuesFromContainerLabels(container)
-	if err != nil {
-		switch err.(type) {
-		case *errors.NonExistingLabelsError:
-			log.Printf("Skipping container '%v': %v", parsedContainerName, err)
-		case *errors.MalformedIPLabelError:
-			log.Printf("ERROR handling container '%v': %v", parsedContainerName, err)
-		}
-		return
-	}
+	<-shutdownChan
 
-	msg := fmt.Sprintf("Found labels for container '%v': ip=%v, port=%v, host=%v", parsedContainerName, ip, port, url)
-
-	if dryRun {
-		msg += ". In dry run mode, not doing anything."
-		log.Println(msg)
-	} else {
-		msg += ", adding entries to Pi-Hole and Nginx Proxy Manager."
-		log.Println(msg)
-
-		err := piholeClient.AddDNSHostEntry(url, ip)
-		if err != nil {
-			log.Printf("ERROR failed to add entry to Pi-Hole: %v", err)
-		}
-
-		err = npmClient.AddProxyHost(npm.ProxyHost{
-			DomainNames:   []string{url},
-			ForwardScheme: "http",
-			ForwardHost:   ip,
-			ForwardPort:   port,
-			Locations:     []npm.Location{},
-			Meta:          map[string]any{},
-		})
-		if err != nil {
-			log.Printf("ERROR failed to add entry to Nginx Proxy Manager: %v", err)
-		}
-	}
-}
-
-func run(dockerClient *docker.Client, piholeClient *pihole.Client, npmClient *npm.Client, dryRun bool) {
-	containers, err := dockerClient.GetRelevantContainers()
-	if err != nil {
-		log.Printf("ERROR getting containers: %v", err)
-		return
-	}
-
-	log.Printf("Found %v containers", len(containers))
-
-	for _, container := range containers {
-		handleContainer(container, piholeClient, npmClient, dryRun)
-	}
-	log.Println("Done")
+	log.Println("Shutdown signal received, exiting gracefully.")
+	cancelCtx()
+	wg.Wait()
+	log.Println("Shutdown complete.")
 }
 
 func main() {
@@ -103,32 +56,30 @@ func main() {
 	if err != nil {
 		log.Fatalf("ERROR creating docker client: %v", err)
 	}
-
 	defer dockerClient.Close()
 
-	run(dockerClient, piholeClient, npmClient, cliFlags.DryRun)
+	proc := processor.New(dockerClient, piholeClient, npmClient, cliFlags.DryRun)
 
 	if conf.RunInterval == 0 {
-		log.Println("RUN_INTERVAL is 0, exiting")
+		log.Println("RUN_INTERVAL is 0, will run once")
+		proc.RunOnce()
 		return
 	}
 
-	ticker := time.NewTicker(conf.RunInterval)
-	defer ticker.Stop()
+	ctx, cancel := context.WithCancel(context.Background())
+	var wg sync.WaitGroup
 
-	log.Printf("Will run again in %v. Press Ctrl+C to exit.", conf.RunInterval)
+	wg.Add(2)
 
-	shutdownChan := make(chan os.Signal, 1)
-	signal.Notify(shutdownChan, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		defer wg.Done()
+		proc.ListenForEvents(ctx)
+	}()
 
-	for {
-		select {
-		case <-ticker.C:
-			run(dockerClient, piholeClient, npmClient, cliFlags.DryRun)
-			log.Printf("Will run again in %v. Press Ctrl+C to exit.", conf.RunInterval)
-		case <-shutdownChan:
-			log.Println("Shutdown signal received, exiting.")
-			return
-		}
-	}
+	go func() {
+		defer wg.Done()
+		proc.RunScheduled(ctx, conf.RunInterval)
+	}()
+
+	shutdown(cancel, &wg)
 }
