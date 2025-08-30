@@ -103,6 +103,70 @@ func TestAddDNSHostEntry(t *testing.T) {
 	})
 }
 
+func TestDeleteDNSHostEntry(t *testing.T) {
+	t.Run("successful delete", func(t *testing.T) {
+		patchCalled := false
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "/api/config", r.URL.Path)
+			assert.Equal(t, "test-sid", r.Header.Get("X-FTL-SID"))
+
+			if r.Method == http.MethodGet {
+				w.WriteHeader(http.StatusOK)
+				// Respond with two existing hosts, one of which we will delete.
+				fmt.Fprint(w, `{"config": {"dns": {"hosts": ["1.1.1.1 one.com", "2.2.2.2 two.com"]}}}`)
+				return
+			}
+
+			if r.Method == http.MethodPatch {
+				patchCalled = true
+				var payload updateDNSHostsEntriesPayload
+				err := json.NewDecoder(r.Body).Decode(&payload)
+				assert.NoError(t, err)
+
+				// Assert that the new payload contains only the remaining entry.
+				expectedHosts := []string{"1.1.1.1 one.com"}
+				assert.ElementsMatch(t, expectedHosts, payload.Config.DNS.Hosts)
+
+				w.WriteHeader(http.StatusOK)
+				fmt.Fprint(w, `{"success": true}`)
+				return
+			}
+			t.Fatalf("Received unexpected request: %s %s", r.Method, r.URL.Path)
+		})
+
+		client, server := setupTestServer(handler)
+		defer server.Close()
+		client.sid = "test-sid"
+
+		err := client.DeleteDNSHostEntry("two.com", "2.2.2.2")
+		assert.NoError(t, err)
+		assert.True(t, patchCalled, "The PATCH endpoint was not called")
+	})
+
+	t.Run("no action if host does not exist", func(t *testing.T) {
+		patchCalled := false
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "/api/config", r.URL.Path)
+			assert.Equal(t, http.MethodGet, r.Method)
+
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprint(w, `{"config": {"dns": {"hosts": ["1.1.1.1 one.com"]}}}`)
+
+			if r.Method == http.MethodPatch {
+				patchCalled = true
+			}
+		})
+
+		client, server := setupTestServer(handler)
+		defer server.Close()
+		client.sid = "test-sid"
+
+		err := client.DeleteDNSHostEntry("non-existent.com", "3.3.3.3")
+		assert.NoError(t, err)
+		assert.False(t, patchCalled, "The PATCH endpoint was called unexpectedly")
+	})
+}
+
 func TestRawDNSHostRawEntryToEntry(t *testing.T) {
 	testCases := []struct {
 		name        string
@@ -144,3 +208,4 @@ func TestDnsHostEntryToRawEntry(t *testing.T) {
 	actual := dnsHostEntryToRawEntry(dom, ip)
 	assert.Equal(t, expected, actual)
 }
+

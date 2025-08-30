@@ -147,7 +147,7 @@ func (p *Processor) processContainer(name, action, ip, url string, port int) {
 	case "stop", "kill":
 		err := p.piholeClient.DeleteDNSHostEntry(url, ip)
 		if err != nil {
-			log.Printf("ERROR failed to delete entry from Pi-Hle: %v", err)
+			log.Printf("ERROR failed to delete entry from Pi-Hole: %v", err)
 		}
 
 		err = p.npmClient.DeleteProxyHost(url)

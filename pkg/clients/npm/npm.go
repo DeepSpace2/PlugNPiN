@@ -58,7 +58,7 @@ func (n *Client) Login() error {
 	return nil
 }
 
-func (n *Client) getProxyHosts() (map[string]string, error) {
+func (n *Client) getProxyHosts() (map[string]int, error) {
 	proxyHostsString, statusCode, err := clients.Get(&n.Client, n.baseURL+"/nginx/proxy-hosts", headers)
 	if statusCode == 401 {
 		n.refreshToken()
@@ -66,13 +66,13 @@ func (n *Client) getProxyHosts() (map[string]string, error) {
 	} else if statusCode >= 400 {
 		return nil, err
 	}
-	var proxyHosts []ProxyHost
-	existingProxyHostsMap := map[string]string{}
+	var proxyHosts []ProxyHostReply
+	existingProxyHostsMap := map[string]int{}
 	json.Unmarshal([]byte(proxyHostsString), &proxyHosts)
 
 	for _, host := range proxyHosts {
 		for _, domainName := range host.DomainNames {
-			existingProxyHostsMap[domainName] = host.ForwardHost
+			existingProxyHostsMap[domainName] = host.ID
 		}
 	}
 
@@ -123,6 +123,35 @@ func (n *Client) AddProxyHost(host ProxyHost) error {
 }
 
 func (n *Client) DeleteProxyHost(domain string) error {
-	log.Printf("STUB: deleting proxy host for %s", domain)
+	existingProxyHosts, err := n.getProxyHosts()
+	if err != nil {
+		return err
+	}
+	hostID, exists := existingProxyHosts[domain]
+	if !exists {
+		return nil
+	}
+
+	url := fmt.Sprintf("%v/nginx/proxy-hosts/%v", n.baseURL, hostID)
+	resp, statusCode, err := clients.Delete(&n.Client, url, headers)
+	if err != nil {
+		return err
+	}
+
+	if statusCode == 401 {
+		err := n.refreshToken()
+		if err != nil {
+			return err
+		}
+		_, _, err = clients.Delete(&n.Client, url, headers)
+		if err != nil {
+			return err
+		}
+	} else if statusCode >= 400 {
+		var errorResponse ErrorResponse
+		json.Unmarshal([]byte(resp), &errorResponse)
+		return errors.New(errorResponse.Error.Message)
+	}
 	return nil
 }
+

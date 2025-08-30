@@ -231,6 +231,15 @@ type configResponse struct {
 	Took float64 `json:"took"`
 }
 
+type ErrorResponse struct {
+	Error struct {
+		Key     string `json:"key"`
+		Message string `json:"message"`
+		Hint    string `json:"hint"`
+	} `json:"error"`
+	Took float64 `json:"took"`
+}
+
 type updateDNSHostsEntriesPayload struct {
 	Config struct {
 		DNS struct {

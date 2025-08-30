@@ -89,9 +89,8 @@ func TestAddProxyHost(t *testing.T) {
 			assert.Equal(t, "/api/nginx/proxy-hosts", r.URL.Path)
 			assert.Equal(t, http.MethodGet, r.Method)
 
-			// 1. Return a list that already contains the host we want to add.
-			existingHosts := []ProxyHost{
-				{DomainNames: []string{"existing-host.com"}},
+			existingHosts := []ProxyHostReply{
+				{ID: 123, DomainNames: []string{"existing-host.com"}},
 			}
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(existingHosts)
@@ -108,5 +107,65 @@ func TestAddProxyHost(t *testing.T) {
 		err := client.AddProxyHost(hostToAdd)
 		// Expect no error, and no POST call would have been made.
 		assert.NoError(t, err)
+	})
+}
+
+func TestDeleteProxyHost(t *testing.T) {
+	const testToken = "test-jwt-token"
+
+	t.Run("successful delete when host exists", func(t *testing.T) {
+		deleteCalled := false
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			authHeader := r.Header.Get("authorization")
+			assert.Equal(t, "Bearer "+testToken, authHeader)
+
+			if r.Method == http.MethodGet {
+				assert.Equal(t, "/api/nginx/proxy-hosts", r.URL.Path)
+				existingHosts := []ProxyHostReply{
+					{ID: 123, DomainNames: []string{"existing-host.com"}},
+				}
+				w.WriteHeader(http.StatusOK)
+				json.NewEncoder(w).Encode(existingHosts)
+				return
+			}
+
+			if r.Method == http.MethodDelete {
+				assert.Equal(t, "/api/nginx/proxy-hosts/123", r.URL.Path)
+				w.WriteHeader(http.StatusOK)
+				deleteCalled = true
+				return
+			}
+		})
+
+		client, server := setupTestServer(handler)
+		client.token = testToken // Pre-authorize client
+		defer server.Close()
+
+		err := client.DeleteProxyHost("existing-host.com")
+		assert.NoError(t, err)
+		assert.True(t, deleteCalled, "The DELETE endpoint was not called")
+	})
+
+	t.Run("no action when host does not exist", func(t *testing.T) {
+		deleteCalled := false
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "/api/nginx/proxy-hosts", r.URL.Path)
+			assert.Equal(t, http.MethodGet, r.Method)
+
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`[]`))
+
+			if r.Method == http.MethodDelete {
+				deleteCalled = true
+			}
+		})
+
+		client, server := setupTestServer(handler)
+		client.token = testToken // Pre-authorize client
+		defer server.Close()
+
+		err := client.DeleteProxyHost("non-existing-host.com")
+		assert.NoError(t, err)
+		assert.False(t, deleteCalled, "The DELETE endpoint was called unexpectedly")
 	})
 }
