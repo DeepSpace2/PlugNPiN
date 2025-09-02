@@ -128,11 +128,13 @@ func (p *Processor) processContainer(name, action, ip, url string, port int) {
 
 	switch action {
 	case "start":
+		log.Printf("Adding entry to Pi-Hole for container '%v'", name)
 		err := p.piholeClient.AddDNSHostEntry(url, ip)
 		if err != nil {
 			log.Printf("ERROR failed to add entry to Pi-Hole: %v", err)
 		}
 
+		log.Printf("Adding entry to Nginx Proxy Manager for container '%v'", name)
 		err = p.npmClient.AddProxyHost(npm.ProxyHost{
 			DomainNames:   []string{url},
 			ForwardScheme: "http",
@@ -145,11 +147,13 @@ func (p *Processor) processContainer(name, action, ip, url string, port int) {
 			log.Printf("ERROR failed to add entry to Nginx Proxy Manager: %v", err)
 		}
 	case "stop", "kill":
+		log.Printf("Deleting entry from Pi-Hole for container '%v'", name)
 		err := p.piholeClient.DeleteDNSHostEntry(url, ip)
 		if err != nil {
 			log.Printf("ERROR failed to delete entry from Pi-Hole: %v", err)
 		}
 
+		log.Printf("Deleting entry from Nginx Proxy Manager for container '%v'", name)
 		err = p.npmClient.DeleteProxyHost(url)
 		if err != nil {
 			log.Printf("ERROR failed to delete entry from Nginx Proxy Manager: %v", err)
