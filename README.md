@@ -17,7 +17,7 @@ as local DNS records in **Pi-Hole** and create matching proxy hosts in
 - Nginx Proxy Manager host creation.
 - Support for Docker socket proxy.
 
-**[See the documentation site for full setup and configuration.](https://deepspace2.github.io/plugnpin)**
+**[See the documentation site for full setup and configuration.](https://deepspace2.github.io/PlugNPiN)**
 
 ## How it Works
 
