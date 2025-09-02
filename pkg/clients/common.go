@@ -87,3 +87,28 @@ func Patch(client *http.Client, path string, headers map[string]string, data str
 	}
 	return string(body), resp.StatusCode, nil
 }
+
+func Delete(client *http.Client, path string, headers map[string]string) (string, int, error) {
+	req, err := http.NewRequest(
+		http.MethodDelete,
+		path,
+		nil,
+	)
+	if err != nil {
+		return "", 0, err
+	}
+
+	setHeaders(req, headers)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", 0, err
+	}
+
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", 0, err
+	}
+	return string(body), resp.StatusCode, nil
+}

@@ -2,7 +2,6 @@ package pihole
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -123,7 +122,54 @@ func (p *Client) AddDNSHostEntry(domain, ip string) error {
 		return err
 	}
 	if statusCode >= 400 {
-		return errors.New(resp)
+		var errorResponse ErrorResponse
+		json.Unmarshal([]byte(resp), &errorResponse)
+		return fmt.Errorf("%v. %v", errorResponse.Error.Message, errorResponse.Error.Hint)
+	}
+
+	return nil
+}
+
+func (p *Client) DeleteDNSHostEntry(domain, ip string) error {
+	existingEntries, err := p.getDNSHosts()
+	if err != nil {
+		return err
+	}
+	d := DomainName(domain)
+	_, exists := existingEntries[d]
+
+	if !exists {
+		return nil
+	}
+
+	delete(existingEntries, d)
+
+	rawEntriesSlice := []string{}
+	for domain, ip := range existingEntries {
+		rawEntriesSlice = append(rawEntriesSlice, dnsHostEntryToRawEntry(domain, ip))
+	}
+
+	payload := updateDNSHostsEntriesPayload{}
+	payload.Config.DNS.Hosts = rawEntriesSlice
+
+	payloadString, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	if p.sid == "" {
+		// TODO:
+		log.Fatal("no SID")
+	}
+	headers["X-FTL-SID"] = p.sid
+	resp, statusCode, err := clients.Patch(&p.Client, p.baseURL+"/config", headers, string(payloadString))
+	if err != nil {
+		return err
+	}
+	if statusCode >= 400 {
+		var errorResponse ErrorResponse
+		json.Unmarshal([]byte(resp), &errorResponse)
+		return fmt.Errorf("%v. %v", errorResponse.Error.Message, errorResponse.Error.Hint)
 	}
 
 	return nil

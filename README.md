@@ -21,15 +21,21 @@ as local DNS records in **Pi-Hole** and create matching proxy hosts in
 
 ## How it Works
 
-PlugNPiN scans for Docker containers with the following labels:
+PlugNPiN discovers services by scanning for Docker containers that have the following labels:
 
 - `plugNPiN.ip` - The IP address and port of the container (e.g., `192.168.1.100:8080`).
 - `plugNPiN.url` - The desired URL for the service (e.g., `my-service.local`).
 
-When a container with these labels is found, PlugNPiN will:
+The application operates in two complementary modes to keep your services synchronized:
 
-1. Create a DNS record pointing the specified `url` to the `ip` address on **Pi-Hole**.
-2. Create a proxy host to route traffic from the `url` to the container's `ip` and `port` on **Nginx Proxy Manager**.
+1.  **Real-Time Event Listening**: The application actively listens for Docker container events. When a container with the required labels is **started**, **stopped**, or **killed**, the tool immediately adds or removes the corresponding DNS and proxy host entries. This ensures that your services are updated in real-time as containers change state.
+
+2.  **Periodic Synchronization**: In addition to real-time events, the tool performs a full synchronization at a regular interval, defined by the `RUN_INTERVAL` environment variable. During this periodic run, it scans all running containers and ensures that their DNS and proxy configurations are correct. This acts as a self-healing mechanism, correcting any entries that might have been missed or become inconsistent.
+
+When a container is processed in either mode, PlugNPiN will:
+
+1.  Create a DNS record pointing the specified `url` to the `ip` address on **Pi-Hole**.
+2.  Create a proxy host to route traffic from the `url` to the container's `ip` and `port` on **Nginx Proxy Manager**.
 
 ## Usage
 

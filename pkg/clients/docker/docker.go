@@ -49,9 +49,15 @@ func GetParsedContainerName(container container.Summary) string {
 	return strings.Trim(container.Names[0], "/")
 }
 
-func GetValuesFromContainerLabels(container container.Summary) (ip, url string, port int, err error) {
-	ip = container.Labels[ipLabel]
-	url = container.Labels[urlLabel]
+func GetValuesFromLabels(labels map[string]string) (ip, url string, port int, err error) {
+	ip, ok := labels[ipLabel]
+	if !ok {
+		return "", "", 0, &errors.NonExistingLabelsError{Msg: fmt.Sprintf("missing %s label", ipLabel)}
+	}
+	url, ok = labels[urlLabel]
+	if !ok {
+		return "", "", 0, &errors.NonExistingLabelsError{Msg: fmt.Sprintf("missing %s label", urlLabel)}
+	}
 
 	splitIPAndPort := strings.Split(ip, ":")
 	if len(splitIPAndPort) == 1 {
