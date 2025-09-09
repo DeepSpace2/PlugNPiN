@@ -129,7 +129,7 @@ func (p *Processor) processContainer(name, action, ip, url string, port int) {
 	switch action {
 	case "start":
 		log.Printf("Adding entry to Pi-Hole for container '%v'", name)
-		err := p.piholeClient.AddDNSHostEntry(url, ip)
+		err := p.piholeClient.AddDNSHostEntry(url, p.npmClient.GetIP())
 		if err != nil {
 			log.Printf("ERROR failed to add entry to Pi-Hole: %v", err)
 		}
