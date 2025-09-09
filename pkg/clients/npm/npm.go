@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 
 	"github.com/deepspace2/plugnpin/pkg/clients"
 )
@@ -56,6 +57,11 @@ func (n *Client) Login() error {
 	n.token = resp.Token
 	headers["authorization"] = "Bearer " + n.token
 	return nil
+}
+
+func (n *Client) GetIP() string {
+	url, _ := url.Parse(n.baseURL)
+	return url.Hostname()
 }
 
 func (n *Client) getProxyHosts() (map[string]int, error) {
@@ -154,4 +160,3 @@ func (n *Client) DeleteProxyHost(domain string) error {
 	}
 	return nil
 }
-
