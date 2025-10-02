@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"slices"
 	"strconv"
 	"strings"
 
+	"github.com/deepspace2/plugnpin/pkg/clients/npm"
 	"github.com/deepspace2/plugnpin/pkg/errors"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
@@ -16,6 +18,16 @@ import (
 const (
 	ipLabel  = "plugNPiN.ip"
 	urlLabel = "plugNPiN.url"
+
+	npmOptionsBlockExploitsLabel     = "plugNPiN.npmOptions.blockExploits"
+	npmOptionsCachingEnabledLabel    = "plugNPiN.npmOptions.cachingEnabled"
+	npmOptionsCertificateNameLabel   = "plugNPiN.npmOptions.certificateName"
+	npmOptionsHTTP2SupportLabel      = "plugNPiN.npmOptions.http2Support"
+	npmOptionsHstsEnabledLabel       = "plugNPiN.npmOptions.hstsEnabled"
+	npmOptionsHstsSubdomainsLabel    = "plugNPiN.npmOptions.hstsSubdomains"
+	npmOptionsSchemeLabel            = "plugNPiN.npmOptions.scheme"
+	npmOptionsSslForcedLabel         = "plugNPiN.npmOptions.forceSsl"
+	npmOptionsWebsocketsSupportLabel = "plugNPiN.npmOptions.websocketsSupport"
 )
 
 var labels []string = []string{ipLabel, urlLabel}
@@ -49,27 +61,60 @@ func GetParsedContainerName(container container.Summary) string {
 	return strings.Trim(container.Names[0], "/")
 }
 
-func GetValuesFromLabels(labels map[string]string) (ip, url string, port int, err error) {
+func GetValuesFromLabels(labels map[string]string) (ip, url string, port int, npmProxyHostOptions *npm.NpmProxyHostOptions, err error) {
 	ip, ok := labels[ipLabel]
 	if !ok {
-		return "", "", 0, &errors.NonExistingLabelsError{Msg: fmt.Sprintf("missing %s label", ipLabel)}
+		return "", "", 0, nil, &errors.NonExistingLabelsError{Msg: fmt.Sprintf("missing %s label", ipLabel)}
 	}
 	url, ok = labels[urlLabel]
 	if !ok {
-		return "", "", 0, &errors.NonExistingLabelsError{Msg: fmt.Sprintf("missing %s label", urlLabel)}
+		return "", "", 0, nil, &errors.NonExistingLabelsError{Msg: fmt.Sprintf("missing %s label", urlLabel)}
 	}
 
 	splitIPAndPort := strings.Split(ip, ":")
 	if len(splitIPAndPort) == 1 {
-		return "", "", 0, &errors.MalformedIPLabelError{Msg: fmt.Sprintf("missing ':' in value of '%v' label", ipLabel)}
+		return "", "", 0, nil, &errors.MalformedIPLabelError{Msg: fmt.Sprintf("missing ':' in value of '%v' label", ipLabel)}
 	}
 	ip = splitIPAndPort[0]
 	port, err = strconv.Atoi(splitIPAndPort[1])
 	if err != nil {
-		return "", "", 0, &errors.MalformedIPLabelError{
+		return "", "", 0, nil, &errors.MalformedIPLabelError{
 			Msg: fmt.Sprintf("value after ':' in value of '%v' label must be an integer, got '%v'", ipLabel, splitIPAndPort[1]),
 		}
 	}
 
-	return ip, url, port, nil
+	npmOptionsWebsocketsSupport, _ := strconv.ParseBool(labels[npmOptionsWebsocketsSupportLabel])
+	npmOptionsBlockExploits, _ := strconv.ParseBool(labels[npmOptionsBlockExploitsLabel])
+	npmOptionsCachingEnabled, _ := strconv.ParseBool(labels[npmOptionsCachingEnabledLabel])
+
+	npmOptionsScheme, exists := labels[npmOptionsSchemeLabel]
+	if !exists {
+		npmOptionsScheme = "http"
+	}
+	npmOptionsScheme = strings.ToLower(npmOptionsScheme)
+	if !slices.Contains([]string{"http", "https"}, npmOptionsScheme) {
+		return "", "", 0, nil, &errors.InvalidSchemeError{
+			Msg: fmt.Sprintf("value of '%v' label must be one of 'http', 'https', got '%v'", npmOptionsSchemeLabel, npmOptionsScheme),
+		}
+	}
+
+	npmOptionsCertificateName := labels[npmOptionsCertificateNameLabel]
+	npmOptionsHTTP2Support, _ := strconv.ParseBool(labels[npmOptionsHTTP2SupportLabel])
+	npmOptionsHstsEnabled, _ := strconv.ParseBool(labels[npmOptionsHstsEnabledLabel])
+	npmOptionsHstsSubdomains, _ := strconv.ParseBool(labels[npmOptionsHstsSubdomainsLabel])
+	npmOptionsSslForced, _ := strconv.ParseBool(labels[npmOptionsSslForcedLabel])
+
+	npmProxyHostOptions = &npm.NpmProxyHostOptions{
+		AllowWebsocketUpgrade: npmOptionsWebsocketsSupport,
+		BlockExploits:         npmOptionsBlockExploits,
+		CachingEnabled:        npmOptionsCachingEnabled,
+		CertificateName:       npmOptionsCertificateName,
+		ForwardScheme:         npmOptionsScheme,
+		HTTP2Support:          npmOptionsHTTP2Support,
+		HstsEnabled:           npmOptionsHstsEnabled,
+		HstsSubdomains:        npmOptionsHstsSubdomains,
+		SslForced:             npmOptionsSslForced,
+	}
+
+	return ip, url, port, npmProxyHostOptions, nil
 }

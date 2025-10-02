@@ -90,6 +90,34 @@ func (n *Client) refreshToken() error {
 	return n.Login()
 }
 
+func (n *Client) getCertificates() (Certificates, error) {
+	resp, statusCode, err := clients.Get(&n.Client, n.baseURL+"/nginx/certificates", headers)
+	if statusCode == 401 {
+		n.refreshToken()
+		return n.getCertificates()
+	} else if statusCode >= 400 {
+		return nil, err
+	}
+
+	var certificates Certificates
+	json.Unmarshal([]byte(resp), &certificates)
+	return certificates, nil
+}
+
+func (n *Client) GetCertificateIDByName(name string) *int {
+	certificates, err := n.getCertificates()
+	if err != nil {
+		return nil
+	}
+	for _, certificate := range certificates {
+		if certificate.NiceName == name {
+			return &certificate.ID
+		}
+	}
+
+	return nil
+}
+
 func (n *Client) AddProxyHost(host ProxyHost) error {
 	existingProxyHosts, err := n.getProxyHosts()
 	if err != nil {

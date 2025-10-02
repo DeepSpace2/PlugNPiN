@@ -56,6 +56,24 @@ When a container is processed in either mode, PlugNPiN will:
 |---|---|
 | `--dry-run`, `-d` | Simulates the process of adding DNS records and proxy hosts without making any actual changes to Pi-hole or Nginx Proxy Manager. |
 
+### Per Container Configuration
+
+#### Nginx Proxy Manager
+
+Use the following labels to configure Nginx Proxy Manager entries
+
+| Label {: style="width:35%"} | Description | Default {: style="width:10%"} |
+|---|---|---|
+| `plugNPiN.npmOptions.blockExploits` | Enables or disables the "Block Common Exploits" option on the proxy host. Set to `true` or `false` | `false` |
+| `plugNPiN.npmOptions.cachingEnabled` | Enables or disables the "Cache Assets" option on the proxy host. Set to `true` or `false`  | `false` |
+| `plugNPiN.npmOptions.certificateName` | Certificate to use for this host. Must already exist on the NPM instance |  |
+| `plugNPiN.npmOptions.forceSsl` | Force SSL | `false` |
+| `plugNPiN.npmOptions.http2Support` | Enable HTTP/2 Support | `false` |
+| `plugNPiN.npmOptions.hstsEnabled` | Enable HSTS | `false` |
+| `plugNPiN.npmOptions.hstsSubdomains` | Enable HSTS Subdomains | `false` |
+| `plugNPiN.npmOptions.scheme` | The scheme used to forward traffic to the container. Can be `http` or `https` | `http` |
+| `plugNPiN.npmOptions.websocketsSupport` | Enables or disables the "Allow Websocket Upgrade" option on the proxy host. Set to `true` or `false` | `false` |
+
 ## Usage
 
 ### Docker Compose
@@ -114,4 +132,3 @@ services:
 ## Contributing
 
 Contributions are very welcome! If you have a feature request, bug report, or want to contribute yourself, please feel free to open an issue or submit a pull request.
-
