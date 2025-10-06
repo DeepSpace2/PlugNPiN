@@ -39,7 +39,6 @@ func Listen(ctx context.Context, handler func(events.Message)) error {
 			if err != nil {
 				log.Printf("Error receiving event: %v", err)
 			}
-			return err
 		}
 	}
 }
