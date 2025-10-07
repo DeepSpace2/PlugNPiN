@@ -81,17 +81,17 @@ func (p *Processor) RunOnce() {
 func (p *Processor) preprocessContainer(container container.Summary) {
 	parsedContainerName := docker.GetParsedContainerName(container)
 
-	ip, url, port, err := docker.GetValuesFromLabels(container.Labels)
+	ip, url, port, npmProxyHostOptions, err := docker.GetValuesFromLabels(container.Labels)
 	if err != nil {
 		switch err.(type) {
 		case *errors.NonExistingLabelsError:
 			log.Printf("Skipping container '%v': %v", parsedContainerName, err)
-		case *errors.MalformedIPLabelError:
+		case *errors.MalformedIPLabelError, *errors.InvalidSchemeError:
 			log.Printf("ERROR handling container '%v': %v", parsedContainerName, err)
 		}
 		return
 	}
-	p.processContainer(parsedContainerName, "start", ip, url, port)
+	p.processContainer(parsedContainerName, "start", ip, url, port, *npmProxyHostOptions)
 }
 
 func (p *Processor) handleDockerEvent(event events.Message) {
@@ -101,21 +101,21 @@ func (p *Processor) handleDockerEvent(event events.Message) {
 		return
 	}
 
-	ip, url, port, err := docker.GetValuesFromLabels(event.Actor.Attributes)
+	ip, url, port, npmProxyHostOptions, err := docker.GetValuesFromLabels(event.Actor.Attributes)
 	if err != nil {
 		switch err.(type) {
 		case *errors.NonExistingLabelsError:
 			// This is not an error, it just means the container is not relevant for us
 			return
-		case *errors.MalformedIPLabelError:
+		case *errors.MalformedIPLabelError, *errors.InvalidSchemeError:
 			log.Printf("ERROR handling event for container '%v': %v", containerName, err)
 		}
 		return
 	}
-	p.processContainer(containerName, string(event.Action), ip, url, port)
+	p.processContainer(containerName, string(event.Action), ip, url, port, *npmProxyHostOptions)
 }
 
-func (p *Processor) processContainer(name, action, ip, url string, port int) {
+func (p *Processor) processContainer(name, action, ip, url string, port int, npmProxyHostOptions npm.NpmProxyHostOptions) {
 	msg := fmt.Sprintf("Handling container '%v': ip=%v, port=%v, host=%v", name, ip, port, url)
 
 	if p.dryRun {
@@ -134,15 +134,33 @@ func (p *Processor) processContainer(name, action, ip, url string, port int) {
 			log.Printf("ERROR failed to add entry to Pi-Hole: %v", err)
 		}
 
+		npmProxyHost := npm.ProxyHost{
+			AllowWebsocketUpgrade: npmProxyHostOptions.AllowWebsocketUpgrade,
+			BlockExploits:         npmProxyHostOptions.BlockExploits,
+			CachingEnabled:        npmProxyHostOptions.CachingEnabled,
+			ForwardScheme:         npmProxyHostOptions.ForwardScheme,
+			HTTP2Support:          npmProxyHostOptions.HTTP2Support,
+			HstsEnabled:           npmProxyHostOptions.HstsEnabled,
+			HstsSubdomains:        npmProxyHostOptions.HstsSubdomains,
+			SslForced:             npmProxyHostOptions.SslForced,
+
+			DomainNames: []string{url},
+			ForwardHost: ip,
+			ForwardPort: port,
+			Locations:   []npm.Location{},
+			Meta:        npm.Meta{},
+		}
+
+		if npmProxyHostOptions.CertificateName != "" {
+			npmCertificateID := p.npmClient.GetCertificateIDByName(npmProxyHostOptions.CertificateName)
+			if npmCertificateID != nil {
+				npmProxyHost.CertificateID = *npmCertificateID
+			}
+		}
+
 		log.Printf("Adding entry to Nginx Proxy Manager for container '%v'", name)
-		err = p.npmClient.AddProxyHost(npm.ProxyHost{
-			DomainNames:   []string{url},
-			ForwardScheme: "http",
-			ForwardHost:   ip,
-			ForwardPort:   port,
-			Locations:     []npm.Location{},
-			Meta:          map[string]any{},
-		})
+
+		err = p.npmClient.AddProxyHost(npmProxyHost)
 		if err != nil {
 			log.Printf("ERROR failed to add entry to Nginx Proxy Manager: %v", err)
 		}
