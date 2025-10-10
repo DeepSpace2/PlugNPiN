@@ -15,29 +15,29 @@ type loginResponse struct {
 type configResponse struct {
 	Config struct {
 		DNS struct {
-			Upstreams           []string      `json:"upstreams"`
-			CNAMEdeepInspect    bool          `json:"CNAMEdeepInspect"`
-			BlockESNI           bool          `json:"blockESNI"`
-			EDNS0ECS            bool          `json:"EDNS0ECS"`
-			IgnoreLocalhost     bool          `json:"ignoreLocalhost"`
-			ShowDNSSEC          bool          `json:"showDNSSEC"`
-			AnalyzeOnlyAandAAAA bool          `json:"analyzeOnlyAandAAAA"`
-			PiholePTR           string        `json:"piholePTR"`
-			ReplyWhenBusy       string        `json:"replyWhenBusy"`
-			BlockTTL            int           `json:"blockTTL"`
-			Hosts               []string      `json:"hosts"`
-			DomainNeeded        bool          `json:"domainNeeded"`
-			ExpandHosts         bool          `json:"expandHosts"`
-			Domain              string        `json:"domain"`
-			BogusPriv           bool          `json:"bogusPriv"`
-			Dnssec              bool          `json:"dnssec"`
-			Interface           string        `json:"interface"`
-			HostRecord          string        `json:"hostRecord"`
-			ListeningMode       string        `json:"listeningMode"`
-			QueryLogging        bool          `json:"queryLogging"`
-			CnameRecords        []interface{} `json:"cnameRecords"`
-			Port                int           `json:"port"`
-			RevServers          []interface{} `json:"revServers"`
+			Upstreams           []string `json:"upstreams"`
+			CNAMEdeepInspect    bool     `json:"CNAMEdeepInspect"`
+			BlockESNI           bool     `json:"blockESNI"`
+			EDNS0ECS            bool     `json:"EDNS0ECS"`
+			IgnoreLocalhost     bool     `json:"ignoreLocalhost"`
+			ShowDNSSEC          bool     `json:"showDNSSEC"`
+			AnalyzeOnlyAandAAAA bool     `json:"analyzeOnlyAandAAAA"`
+			PiholePTR           string   `json:"piholePTR"`
+			ReplyWhenBusy       string   `json:"replyWhenBusy"`
+			BlockTTL            int      `json:"blockTTL"`
+			Hosts               []string `json:"hosts"`
+			DomainNeeded        bool     `json:"domainNeeded"`
+			ExpandHosts         bool     `json:"expandHosts"`
+			Domain              string   `json:"domain"`
+			BogusPriv           bool     `json:"bogusPriv"`
+			Dnssec              bool     `json:"dnssec"`
+			Interface           string   `json:"interface"`
+			HostRecord          string   `json:"hostRecord"`
+			ListeningMode       string   `json:"listeningMode"`
+			QueryLogging        bool     `json:"queryLogging"`
+			CnameRecords        []any    `json:"cnameRecords"`
+			Port                int      `json:"port"`
+			RevServers          []any    `json:"revServers"`
 			Cache               struct {
 				Size               int `json:"size"`
 				Optimizer          int `json:"optimizer"`
@@ -73,18 +73,18 @@ type configResponse struct {
 			} `json:"rateLimit"`
 		} `json:"dns"`
 		Dhcp struct {
-			Active               bool          `json:"active"`
-			Start                string        `json:"start"`
-			End                  string        `json:"end"`
-			Router               string        `json:"router"`
-			Netmask              string        `json:"netmask"`
-			LeaseTime            string        `json:"leaseTime"`
-			Ipv6                 bool          `json:"ipv6"`
-			RapidCommit          bool          `json:"rapidCommit"`
-			MultiDNS             bool          `json:"multiDNS"`
-			Logging              bool          `json:"logging"`
-			IgnoreUnknownClients bool          `json:"ignoreUnknownClients"`
-			Hosts                []interface{} `json:"hosts"`
+			Active               bool   `json:"active"`
+			Start                string `json:"start"`
+			End                  string `json:"end"`
+			Router               string `json:"router"`
+			Netmask              string `json:"netmask"`
+			LeaseTime            string `json:"leaseTime"`
+			Ipv6                 bool   `json:"ipv6"`
+			RapidCommit          bool   `json:"rapidCommit"`
+			MultiDNS             bool   `json:"multiDNS"`
+			Logging              bool   `json:"logging"`
+			IgnoreUnknownClients bool   `json:"ignoreUnknownClients"`
+			Hosts                []any  `json:"hosts"`
 		} `json:"dhcp"`
 		Ntp struct {
 			Ipv4 struct {
@@ -147,20 +147,20 @@ type configResponse struct {
 				Theme string `json:"theme"`
 			} `json:"interface"`
 			API struct {
-				MaxSessions            int           `json:"max_sessions"`
-				PrettyJSON             bool          `json:"prettyJSON"`
-				Pwhash                 string        `json:"pwhash"`
-				Password               string        `json:"password"`
-				TotpSecret             string        `json:"totp_secret"`
-				AppPwhash              string        `json:"app_pwhash"`
-				AppSudo                bool          `json:"app_sudo"`
-				CliPw                  bool          `json:"cli_pw"`
-				ExcludeClients         []interface{} `json:"excludeClients"`
-				ExcludeDomains         []interface{} `json:"excludeDomains"`
-				MaxHistory             int           `json:"maxHistory"`
-				MaxClients             int           `json:"maxClients"`
-				ClientHistoryGlobalMax bool          `json:"client_history_global_max"`
-				AllowDestructive       bool          `json:"allow_destructive"`
+				MaxSessions            int    `json:"max_sessions"`
+				PrettyJSON             bool   `json:"prettyJSON"`
+				Pwhash                 string `json:"pwhash"`
+				Password               string `json:"password"`
+				TotpSecret             string `json:"totp_secret"`
+				AppPwhash              string `json:"app_pwhash"`
+				AppSudo                bool   `json:"app_sudo"`
+				CliPw                  bool   `json:"cli_pw"`
+				ExcludeClients         []any  `json:"excludeClients"`
+				ExcludeDomains         []any  `json:"excludeDomains"`
+				MaxHistory             int    `json:"maxHistory"`
+				MaxClients             int    `json:"maxClients"`
+				ClientHistoryGlobalMax bool   `json:"client_history_global_max"`
+				AllowDestructive       bool   `json:"allow_destructive"`
 				Temp                   struct {
 					Limit int    `json:"limit"`
 					Unit  string `json:"unit"`
@@ -181,14 +181,14 @@ type configResponse struct {
 			} `json:"log"`
 		} `json:"files"`
 		Misc struct {
-			Privacylevel int           `json:"privacylevel"`
-			DelayStartup int           `json:"delay_startup"`
-			Nice         int           `json:"nice"`
-			Addr2Line    bool          `json:"addr2line"`
-			EtcDnsmasqD  bool          `json:"etc_dnsmasq_d"`
-			DnsmasqLines []interface{} `json:"dnsmasq_lines"`
-			ExtraLogging bool          `json:"extraLogging"`
-			ReadOnly     bool          `json:"readOnly"`
+			Privacylevel int   `json:"privacylevel"`
+			DelayStartup int   `json:"delay_startup"`
+			Nice         int   `json:"nice"`
+			Addr2Line    bool  `json:"addr2line"`
+			EtcDnsmasqD  bool  `json:"etc_dnsmasq_d"`
+			DnsmasqLines []any `json:"dnsmasq_lines"`
+			ExtraLogging bool  `json:"extraLogging"`
+			ReadOnly     bool  `json:"readOnly"`
 			Check        struct {
 				Load  bool `json:"load"`
 				Shmem int  `json:"shmem"`
@@ -240,7 +240,7 @@ type ErrorResponse struct {
 	Took float64 `json:"took"`
 }
 
-type updateDNSHostsEntriesPayload struct {
+type updateDnsRecordsPayload struct {
 	Config struct {
 		DNS struct {
 			Hosts []string `json:"hosts"`
@@ -248,8 +248,22 @@ type updateDNSHostsEntriesPayload struct {
 	} `json:"config"`
 }
 
+type updateCNameRecordsPayload struct {
+	Config struct {
+		DNS struct {
+			CnameRecords []string `json:"cnameRecords"`
+		}
+	}
+}
+
+type PiHoleOptions struct {
+	TargetDomain string
+}
+
 type (
-	DomainName     string
-	IP             string
-	DNSHostEntries map[DomainName]IP
+	CNameRecords map[DomainName]Target
+	DnsRecords   map[DomainName]IP
+	DomainName   string
+	IP           string
+	Target       string
 )

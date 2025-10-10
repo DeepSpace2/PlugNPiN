@@ -70,6 +70,7 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 		expectedNpmOptionsCachingEnabled    bool
 		expectedNpmOptionsScheme            string
 		expectedNpmOptionsWebsocketsSupport bool
+		expectedPiholeOptionsTargetDomain   string
 	}{
 		{
 			name: "Happy path",
@@ -227,11 +228,42 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 			expectedNpmOptionsScheme:            "https",
 			expectedNpmOptionsWebsocketsSupport: false,
 		},
+		{
+			name: "Pi-Hole options - no target domain",
+			container: container.Summary{
+				Labels: map[string]string{
+					ipLabel:  "192.168.1.10:8080",
+					urlLabel: "my-service.example.com",
+				},
+			},
+			expectedIP:                        "192.168.1.10",
+			expectedURL:                       "my-service.example.com",
+			expectedPort:                      8080,
+			expectedErr:                       nil,
+			expectedNpmOptionsScheme:          "http",
+			expectedPiholeOptionsTargetDomain: "",
+		},
+		{
+			name: "Pi-Hole options - target domain",
+			container: container.Summary{
+				Labels: map[string]string{
+					ipLabel:                        "192.168.1.10:8080",
+					urlLabel:                       "my-service.example.com",
+					piholeOptionsTargetDomainLabel: "custom.domain",
+				},
+			},
+			expectedIP:                        "192.168.1.10",
+			expectedURL:                       "my-service.example.com",
+			expectedPort:                      8080,
+			expectedErr:                       nil,
+			expectedNpmOptionsScheme:          "http",
+			expectedPiholeOptionsTargetDomain: "custom.domain",
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ip, url, port, npmOptions, err := GetValuesFromLabels(tc.container.Labels)
+			ip, url, port, npmOptions, piholeOptions, err := GetValuesFromLabels(tc.container.Labels)
 
 			assert.Equal(t, tc.expectedIP, ip)
 			assert.Equal(t, tc.expectedURL, url)
@@ -242,6 +274,7 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 				assert.Equal(t, tc.expectedNpmOptionsCachingEnabled, npmOptions.CachingEnabled)
 				assert.Equal(t, tc.expectedNpmOptionsScheme, npmOptions.ForwardScheme)
 				assert.Equal(t, tc.expectedNpmOptionsWebsocketsSupport, npmOptions.AllowWebsocketUpgrade)
+				assert.Equal(t, tc.expectedPiholeOptionsTargetDomain, piholeOptions.TargetDomain)
 			}
 		})
 	}
