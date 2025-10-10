@@ -5,6 +5,8 @@ on:
     branches:
       - master
     paths:
+      - ".github/workflows/docs-develop.yml"
+      - ".github/workflows/docs-release.yml"
       - "docs/**"
       - "mkdocs.yml"
       - "README.md"
@@ -34,4 +36,4 @@ jobs:
       - name: Install Dependencies
         run: pip install mkdocs-material mike
       - name: Build and Deploy Docs
-        run: mike deploy --push develop
+        run: mike deploy develop && git checkout gh-pages && git pull && git push
