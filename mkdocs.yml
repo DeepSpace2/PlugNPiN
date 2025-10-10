@@ -37,6 +37,7 @@ theme:
         name: Switch to light mode
 extra:
   version:
+    alias: true
     provider: mike
 markdown_extensions:
   - admonition
