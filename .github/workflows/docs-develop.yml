@@ -36,4 +36,4 @@ jobs:
       - name: Install Dependencies
         run: pip install mkdocs-material mike
       - name: Build and Deploy Docs
-        run: mike deploy develop && git checkout gh-pages && git pull && git push
+        run: mike deploy develop && git checkout gh-pages && git pull origin gh-pages && git push --set-upstream origin gh-pages
