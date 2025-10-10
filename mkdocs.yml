@@ -5,6 +5,7 @@ site_url: https://deepspace2.github.io/plugnpin
 repo_url: https://github.com/deepspace2/plugnpin
 theme:
   name: material
+  custom_dir: docs/theme/overrides
   icon:
     repo: fontawesome/brands/github
   features:
