@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/deepspace2/plugnpin/pkg/clients/npm"
+	"github.com/deepspace2/plugnpin/pkg/clients/pihole"
 	"github.com/deepspace2/plugnpin/pkg/errors"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
@@ -28,6 +29,7 @@ const (
 	npmOptionsSchemeLabel            = "plugNPiN.npmOptions.scheme"
 	npmOptionsSslForcedLabel         = "plugNPiN.npmOptions.forceSsl"
 	npmOptionsWebsocketsSupportLabel = "plugNPiN.npmOptions.websocketsSupport"
+	piholeOptionsTargetDomainLabel   = "plugNPiN.piholeOptions.targetDomain"
 )
 
 var labels []string = []string{ipLabel, urlLabel}
@@ -61,24 +63,24 @@ func GetParsedContainerName(container container.Summary) string {
 	return strings.Trim(container.Names[0], "/")
 }
 
-func GetValuesFromLabels(labels map[string]string) (ip, url string, port int, npmProxyHostOptions *npm.NpmProxyHostOptions, err error) {
+func GetValuesFromLabels(labels map[string]string) (ip, url string, port int, npmProxyHostOptions *npm.NpmProxyHostOptions, piholeOptions *pihole.PiHoleOptions, err error) {
 	ip, ok := labels[ipLabel]
 	if !ok {
-		return "", "", 0, nil, &errors.NonExistingLabelsError{Msg: fmt.Sprintf("missing %s label", ipLabel)}
+		return "", "", 0, nil, nil, &errors.NonExistingLabelsError{Msg: fmt.Sprintf("missing %s label", ipLabel)}
 	}
 	url, ok = labels[urlLabel]
 	if !ok {
-		return "", "", 0, nil, &errors.NonExistingLabelsError{Msg: fmt.Sprintf("missing %s label", urlLabel)}
+		return "", "", 0, nil, nil, &errors.NonExistingLabelsError{Msg: fmt.Sprintf("missing %s label", urlLabel)}
 	}
 
 	splitIPAndPort := strings.Split(ip, ":")
 	if len(splitIPAndPort) == 1 {
-		return "", "", 0, nil, &errors.MalformedIPLabelError{Msg: fmt.Sprintf("missing ':' in value of '%v' label", ipLabel)}
+		return "", "", 0, nil, nil, &errors.MalformedIPLabelError{Msg: fmt.Sprintf("missing ':' in value of '%v' label", ipLabel)}
 	}
 	ip = splitIPAndPort[0]
 	port, err = strconv.Atoi(splitIPAndPort[1])
 	if err != nil {
-		return "", "", 0, nil, &errors.MalformedIPLabelError{
+		return "", "", 0, nil, nil, &errors.MalformedIPLabelError{
 			Msg: fmt.Sprintf("value after ':' in value of '%v' label must be an integer, got '%v'", ipLabel, splitIPAndPort[1]),
 		}
 	}
@@ -93,7 +95,7 @@ func GetValuesFromLabels(labels map[string]string) (ip, url string, port int, np
 	}
 	npmOptionsScheme = strings.ToLower(npmOptionsScheme)
 	if !slices.Contains([]string{"http", "https"}, npmOptionsScheme) {
-		return "", "", 0, nil, &errors.InvalidSchemeError{
+		return "", "", 0, nil, nil, &errors.InvalidSchemeError{
 			Msg: fmt.Sprintf("value of '%v' label must be one of 'http', 'https', got '%v'", npmOptionsSchemeLabel, npmOptionsScheme),
 		}
 	}
@@ -116,5 +118,11 @@ func GetValuesFromLabels(labels map[string]string) (ip, url string, port int, np
 		SslForced:             npmOptionsSslForced,
 	}
 
-	return ip, url, port, npmProxyHostOptions, nil
+	piholeOptionsTargetDomain := labels[piholeOptionsTargetDomainLabel]
+
+	piholeOptions = &pihole.PiHoleOptions{
+		TargetDomain: piholeOptionsTargetDomain,
+	}
+
+	return ip, url, port, npmProxyHostOptions, piholeOptions, nil
 }

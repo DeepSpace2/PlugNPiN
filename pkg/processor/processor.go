@@ -81,7 +81,7 @@ func (p *Processor) RunOnce() {
 func (p *Processor) preprocessContainer(container container.Summary) {
 	parsedContainerName := docker.GetParsedContainerName(container)
 
-	ip, url, port, npmProxyHostOptions, err := docker.GetValuesFromLabels(container.Labels)
+	ip, url, port, npmProxyHostOptions, piholeOptions, err := docker.GetValuesFromLabels(container.Labels)
 	if err != nil {
 		switch err.(type) {
 		case *errors.NonExistingLabelsError:
@@ -91,7 +91,7 @@ func (p *Processor) preprocessContainer(container container.Summary) {
 		}
 		return
 	}
-	p.processContainer(parsedContainerName, "start", ip, url, port, *npmProxyHostOptions)
+	p.processContainer(parsedContainerName, "start", ip, url, port, *npmProxyHostOptions, *piholeOptions)
 }
 
 func (p *Processor) handleDockerEvent(event events.Message) {
@@ -101,7 +101,7 @@ func (p *Processor) handleDockerEvent(event events.Message) {
 		return
 	}
 
-	ip, url, port, npmProxyHostOptions, err := docker.GetValuesFromLabels(event.Actor.Attributes)
+	ip, url, port, npmProxyHostOptions, piholeOptions, err := docker.GetValuesFromLabels(event.Actor.Attributes)
 	if err != nil {
 		switch err.(type) {
 		case *errors.NonExistingLabelsError:
@@ -112,10 +112,10 @@ func (p *Processor) handleDockerEvent(event events.Message) {
 		}
 		return
 	}
-	p.processContainer(containerName, string(event.Action), ip, url, port, *npmProxyHostOptions)
+	p.processContainer(containerName, string(event.Action), ip, url, port, *npmProxyHostOptions, *piholeOptions)
 }
 
-func (p *Processor) processContainer(name, action, ip, url string, port int, npmProxyHostOptions npm.NpmProxyHostOptions) {
+func (p *Processor) processContainer(name, action, ip, url string, port int, npmProxyHostOptions npm.NpmProxyHostOptions, piholeOptions pihole.PiHoleOptions) {
 	msg := fmt.Sprintf("Handling container '%v': ip=%v, port=%v, host=%v", name, ip, port, url)
 
 	if p.dryRun {
@@ -128,10 +128,18 @@ func (p *Processor) processContainer(name, action, ip, url string, port int, npm
 
 	switch action {
 	case "start":
-		log.Printf("Adding entry to Pi-Hole for container '%v'", name)
-		err := p.piholeClient.AddDNSHostEntry(url, p.npmClient.GetIP())
-		if err != nil {
-			log.Printf("ERROR failed to add entry to Pi-Hole: %v", err)
+		if piholeOptions.TargetDomain == "" {
+			log.Printf("Adding a local DNS record to Pi-Hole for container '%v'", name)
+			err := p.piholeClient.AddDnsRecord(url, p.npmClient.GetIP())
+			if err != nil {
+				log.Printf("ERROR failed to add a local DNS record to Pi-Hole: %v", err)
+			}
+		} else {
+			log.Printf("Adding a local CNAME record to Pi-Hole for container '%v'", name)
+			err := p.piholeClient.AddCNameRecord(url, piholeOptions.TargetDomain)
+			if err != nil {
+				log.Printf("ERROR failed to add a local CNAME record to Pi-Hole: %v", err)
+			}
 		}
 
 		npmProxyHost := npm.ProxyHost{
@@ -160,19 +168,27 @@ func (p *Processor) processContainer(name, action, ip, url string, port int, npm
 
 		log.Printf("Adding entry to Nginx Proxy Manager for container '%v'", name)
 
-		err = p.npmClient.AddProxyHost(npmProxyHost)
+		err := p.npmClient.AddProxyHost(npmProxyHost)
 		if err != nil {
 			log.Printf("ERROR failed to add entry to Nginx Proxy Manager: %v", err)
 		}
 	case "stop", "kill":
-		log.Printf("Deleting entry from Pi-Hole for container '%v'", name)
-		err := p.piholeClient.DeleteDNSHostEntry(url, ip)
-		if err != nil {
-			log.Printf("ERROR failed to delete entry from Pi-Hole: %v", err)
+		if piholeOptions.TargetDomain == "" {
+			log.Printf("Deleting local DNS record from Pi-Hole for container '%v'", name)
+			err := p.piholeClient.DeleteDnsRecord(url, ip)
+			if err != nil {
+				log.Printf("ERROR failed to delete local DNS record from Pi-Hole: %v", err)
+			}
+		} else {
+			log.Printf("Deleting local CNAME record from Pi-Hole for container '%v'", name)
+			err := p.piholeClient.DeleteCNameRecord(url, piholeOptions.TargetDomain)
+			if err != nil {
+				log.Printf("ERROR failed to delete local CNAME record from Pi-Hole: %v", err)
+			}
 		}
 
 		log.Printf("Deleting entry from Nginx Proxy Manager for container '%v'", name)
-		err = p.npmClient.DeleteProxyHost(url)
+		err := p.npmClient.DeleteProxyHost(url)
 		if err != nil {
 			log.Printf("ERROR failed to delete entry from Nginx Proxy Manager: %v", err)
 		}

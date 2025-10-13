@@ -7,7 +7,7 @@
 **Plug and play your docker containers into Pi-Hole & Nginx Proxy Manager**
 
 Automatically detect running Docker containers based on labels, add them
-as local DNS records in **Pi-Hole** and create matching proxy hosts in
+as local DNS/[CNAME](#targetDomainLabel) records in **Pi-Hole** and create matching proxy hosts in
 **Nginx Proxy Manager**.
 
 ## How It Works
@@ -25,8 +25,13 @@ The application operates in two complementary modes to keep your services synchr
 
 When a container is processed in either mode, PlugNPiN will:
 
-1. Create a DNS record pointing the specified `url` to the `ip` address on **Pi-Hole**.
+1. Create a DNS record pointing the specified `url` to the `ip` address on **Pi-Hole** (or a [CNAME record](#targetDomainLabel) pointing to a configurable target domain).
 2. Create a proxy host to route traffic from the `url` to the container's `ip` and `port` on **Nginx Proxy Manager**.
+
+### CNAME Records
+
+It is possible to force PlugNPiN to create CNAME records instead of local DNS records ("A record") in Pi-Hole by setting the `plugNPiN.piholeOptions.targetDomain` label.
+See [Per Container Configuration ➔ Pi-Hole](#targetDomainLabel).
 
 ## Configuration
 
@@ -39,8 +44,8 @@ When a container is processed in either mode, PlugNPiN will:
 | `NGINX_PROXY_MANAGER_HOST` | The URL of your Nginx Proxy Manager instance. |
 | `NGINX_PROXY_MANAGER_USERNAME` | Your Nginx Proxy Manager username. |
 | `NGINX_PROXY_MANAGER_PASSWORD` | Your Nginx Proxy Manager password. <br> **Important:** It is recommended to create a new non-admin user with only the "Proxy Hosts - Manage" permission. |
-| `PIHOLE_HOST` | The URL of your Pi-hole instance. |
-| `PIHOLE_PASSWORD` | Your Pi-hole password. <br> **Important:** It is recommended to create an 'application password' rather than using your actual admin password. |
+| `PIHOLE_HOST` | The URL of your Pi-Hole instance. |
+| `PIHOLE_PASSWORD` | Your Pi-Hole password. <br> **Important:** It is recommended to create an 'application password' rather than using your actual admin password. |
 
 #### Optional
 
@@ -54,7 +59,7 @@ When a container is processed in either mode, PlugNPiN will:
 
 | Flag {: style="width:35%" } | Description |
 |---|---|
-| `--dry-run`, `-d` | Simulates the process of adding DNS records and proxy hosts without making any actual changes to Pi-hole or Nginx Proxy Manager. |
+| `--dry-run`, `-d` | Simulates the process of adding DNS/CNAME records and proxy hosts without making any actual changes to Pi-Hole or Nginx Proxy Manager. |
 
 ### Per Container Configuration
 
@@ -73,6 +78,12 @@ Use the following labels to configure Nginx Proxy Manager entries
 | `plugNPiN.npmOptions.hstsSubdomains` | Enable HSTS Subdomains | `false` |
 | `plugNPiN.npmOptions.scheme` | The scheme used to forward traffic to the container. Can be `http` or `https` | `http` |
 | `plugNPiN.npmOptions.websocketsSupport` | Enables or disables the "Allow Websocket Upgrade" option on the proxy host. Set to `true` or `false` | `false` |
+
+#### Pi-Hole
+
+| Label {: style="width:35%"} | Description | Default {: style="width:10%"} |
+|---|---|---|
+| <a name="targetDomainLabel"></a>`plugNPiN.piholeOptions.targetDomain` | If provided, a CNAME record will be created **instead** of a DNS record |  |
 
 ## Usage
 

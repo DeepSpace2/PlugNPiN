@@ -7,13 +7,13 @@
 **Plug and play your docker containers into Pi-Hole & Nginx Proxy Manager**
 
 Automatically detect running Docker containers based on labels, add them
-as local DNS records in **Pi-Hole** and create matching proxy hosts in
+as local DNS/CNAME records in **Pi-Hole** and create matching proxy hosts in
 **Nginx Proxy Manager**.
 
 ## Key Features
 
 - Automatic Docker container detection.
-- Local DNS record creation in Pi-hole.
+- Local DNS/CNAME record creation in Pi-hole.
 - Nginx Proxy Manager host creation.
 - Support for Docker socket proxy.
 
@@ -28,14 +28,14 @@ PlugNPiN discovers services by scanning for Docker containers that have the foll
 
 The application operates in two complementary modes to keep your services synchronized:
 
-1.  **Real-Time Event Listening**: The application actively listens for Docker container events. When a container with the required labels is **started**, **stopped**, or **killed**, the tool immediately adds or removes the corresponding DNS and proxy host entries. This ensures that your services are updated in real-time as containers change state.
+1. **Real-Time Event Listening**: The application actively listens for Docker container events. When a container with the required labels is **started**, **stopped**, or **killed**, the tool immediately adds or removes the corresponding DNS and proxy host entries. This ensures that your services are updated in real-time as containers change state.
 
-2.  **Periodic Synchronization**: In addition to real-time events, the tool performs a full synchronization at a regular interval, defined by the `RUN_INTERVAL` environment variable. During this periodic run, it scans all running containers and ensures that their DNS and proxy configurations are correct. This acts as a self-healing mechanism, correcting any entries that might have been missed or become inconsistent.
+2. **Periodic Synchronization**: In addition to real-time events, the tool performs a full synchronization at a regular interval, defined by the `RUN_INTERVAL` environment variable. During this periodic run, it scans all running containers and ensures that their DNS and proxy configurations are correct. This acts as a self-healing mechanism, correcting any entries that might have been missed or become inconsistent.
 
 When a container is processed in either mode, PlugNPiN will:
 
-1.  Create a DNS record pointing the specified `url` to the `ip` address on **Pi-Hole**.
-2.  Create a proxy host to route traffic from the `url` to the container's `ip` and `port` on **Nginx Proxy Manager**.
+1. Create a DNS record pointing the specified `url` to the `ip` address on **Pi-Hole** (or a CNAME record pointing to a configurable target domain).
+2. Create a proxy host to route traffic from the `url` to the container's `ip` and `port` on **Nginx Proxy Manager**.
 
 ## Usage
 
