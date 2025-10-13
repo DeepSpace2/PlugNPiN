@@ -343,6 +343,21 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="How It Works">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cname-records" class="md-nav__link">
+    <span class="md-ellipsis">
+      CNAME Records
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -411,6 +426,15 @@
   <a href="#nginx-proxy-manager" class="md-nav__link">
     <span class="md-ellipsis">
       Nginx Proxy Manager
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pi-hole" class="md-nav__link">
+    <span class="md-ellipsis">
+      Pi-Hole
     </span>
   </a>
   
@@ -516,7 +540,7 @@
 <h1 id="plugnpin">🔌 PlugNPiN</h1>
 <p><strong>Plug and play your docker containers into Pi-Hole &amp; Nginx Proxy Manager</strong></p>
 <p>Automatically detect running Docker containers based on labels, add them
-as local DNS records in <strong>Pi-Hole</strong> and create matching proxy hosts in
+as local DNS/<a href="#targetDomainLabel">CNAME</a> records in <strong>Pi-Hole</strong> and create matching proxy hosts in
 <strong>Nginx Proxy Manager</strong>.</p>
 <h2 id="how-it-works">How It Works</h2>
 <p>PlugNPiN discovers services by scanning for Docker containers that have the following labels:</p>
@@ -535,9 +559,12 @@ as local DNS records in <strong>Pi-Hole</strong> and create matching proxy hosts
 </ol>
 <p>When a container is processed in either mode, PlugNPiN will:</p>
 <ol>
-<li>Create a DNS record pointing the specified <code>url</code> to the <code>ip</code> address on <strong>Pi-Hole</strong>.</li>
+<li>Create a DNS record pointing the specified <code>url</code> to the <code>ip</code> address on <strong>Pi-Hole</strong> (or a <a href="#targetDomainLabel">CNAME record</a> pointing to a configurable target domain).</li>
 <li>Create a proxy host to route traffic from the <code>url</code> to the container's <code>ip</code> and <code>port</code> on <strong>Nginx Proxy Manager</strong>.</li>
 </ol>
+<h3 id="cname-records">CNAME Records</h3>
+<p>It is possible to force PlugNPiN to create CNAME records instead of local DNS records ("A record") in Pi-Hole by setting the <code>plugNPiN.piholeOptions.targetDomain</code> label.
+See <a href="#targetDomainLabel">Per Container Configuration ➔ Pi-Hole</a>.</p>
 <h2 id="configuration">Configuration</h2>
 <h3 id="environment-variables">Environment Variables</h3>
 <h4 id="required">Required</h4>
@@ -563,11 +590,11 @@ as local DNS records in <strong>Pi-Hole</strong> and create matching proxy hosts
 </tr>
 <tr>
 <td><code>PIHOLE_HOST</code></td>
-<td>The URL of your Pi-hole instance.</td>
+<td>The URL of your Pi-Hole instance.</td>
 </tr>
 <tr>
 <td><code>PIHOLE_PASSWORD</code></td>
-<td>Your Pi-hole password. <br> <strong>Important:</strong> It is recommended to create an 'application password' rather than using your actual admin password.</td>
+<td>Your Pi-Hole password. <br> <strong>Important:</strong> It is recommended to create an 'application password' rather than using your actual admin password.</td>
 </tr>
 </tbody>
 </table>
@@ -609,7 +636,7 @@ as local DNS records in <strong>Pi-Hole</strong> and create matching proxy hosts
 <tbody>
 <tr>
 <td><code>--dry-run</code>, <code>-d</code></td>
-<td>Simulates the process of adding DNS records and proxy hosts without making any actual changes to Pi-hole or Nginx Proxy Manager.</td>
+<td>Simulates the process of adding DNS/CNAME records and proxy hosts without making any actual changes to Pi-Hole or Nginx Proxy Manager.</td>
 </tr>
 </tbody>
 </table>
@@ -669,6 +696,23 @@ as local DNS records in <strong>Pi-Hole</strong> and create matching proxy hosts
 <td><code>plugNPiN.npmOptions.websocketsSupport</code></td>
 <td>Enables or disables the "Allow Websocket Upgrade" option on the proxy host. Set to <code>true</code> or <code>false</code></td>
 <td><code>false</code></td>
+</tr>
+</tbody>
+</table>
+<h4 id="pi-hole">Pi-Hole</h4>
+<table>
+<thead>
+<tr>
+<th style="width:35%">Label</th>
+<th>Description</th>
+<th style="width:10%">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a name="targetDomainLabel"></a><code>plugNPiN.piholeOptions.targetDomain</code></td>
+<td>If provided, a CNAME record will be created <strong>instead</strong> of a DNS record</td>
+<td></td>
 </tr>
 </tbody>
 </table>
