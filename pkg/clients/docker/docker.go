@@ -85,8 +85,13 @@ func GetValuesFromLabels(labels map[string]string) (ip, url string, port int, np
 		}
 	}
 
+	npmOptionsBlockExploitsLabelValue, exists := labels[npmOptionsBlockExploitsLabel]
+	if !exists {
+		npmOptionsBlockExploitsLabelValue = "true"
+	}
+
+	npmOptionsBlockExploits, _ := strconv.ParseBool(npmOptionsBlockExploitsLabelValue)
 	npmOptionsWebsocketsSupport, _ := strconv.ParseBool(labels[npmOptionsWebsocketsSupportLabel])
-	npmOptionsBlockExploits, _ := strconv.ParseBool(labels[npmOptionsBlockExploitsLabel])
 	npmOptionsCachingEnabled, _ := strconv.ParseBool(labels[npmOptionsCachingEnabledLabel])
 
 	npmOptionsScheme, exists := labels[npmOptionsSchemeLabel]

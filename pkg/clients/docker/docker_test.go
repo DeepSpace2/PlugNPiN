@@ -84,7 +84,7 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 			expectedURL:                         "my-service.example.com",
 			expectedPort:                        8080,
 			expectedErr:                         nil,
-			expectedNpmOptionsBlockExploits:     false,
+			expectedNpmOptionsBlockExploits:     true,
 			expectedNpmOptionsCachingEnabled:    false,
 			expectedNpmOptionsScheme:            "http",
 			expectedNpmOptionsWebsocketsSupport: false,
@@ -223,7 +223,7 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 			expectedURL:                         "my-service.example.com",
 			expectedPort:                        8080,
 			expectedErr:                         nil,
-			expectedNpmOptionsBlockExploits:     false,
+			expectedNpmOptionsBlockExploits:     true,
 			expectedNpmOptionsCachingEnabled:    false,
 			expectedNpmOptionsScheme:            "https",
 			expectedNpmOptionsWebsocketsSupport: false,
@@ -241,6 +241,7 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 			expectedPort:                      8080,
 			expectedErr:                       nil,
 			expectedNpmOptionsScheme:          "http",
+			expectedNpmOptionsBlockExploits:   true,
 			expectedPiholeOptionsTargetDomain: "",
 		},
 		{
@@ -257,6 +258,7 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 			expectedPort:                      8080,
 			expectedErr:                       nil,
 			expectedNpmOptionsScheme:          "http",
+			expectedNpmOptionsBlockExploits:   true,
 			expectedPiholeOptionsTargetDomain: "custom.domain",
 		},
 	}
