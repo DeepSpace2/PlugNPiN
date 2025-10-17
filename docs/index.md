@@ -69,7 +69,7 @@ Use the following labels to configure Nginx Proxy Manager entries
 
 | Label {: style="width:35%"} | Description | Default {: style="width:10%"} |
 |---|---|---|
-| `plugNPiN.npmOptions.blockExploits` | Enables or disables the "Block Common Exploits" option on the proxy host. Set to `true` or `false` | `false` |
+| `plugNPiN.npmOptions.blockExploits` | Enables or disables the "Block Common Exploits" option on the proxy host. Set to `true` or `false` | `true` |
 | `plugNPiN.npmOptions.cachingEnabled` | Enables or disables the "Cache Assets" option on the proxy host. Set to `true` or `false`  | `false` |
 | `plugNPiN.npmOptions.certificateName` | Certificate to use for this host. Must already exist on the NPM instance |  |
 | `plugNPiN.npmOptions.forceSsl` | Force SSL | `false` |
