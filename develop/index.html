@@ -44,6 +44,8 @@
       
     
     
+      <link rel="stylesheet" href="css/anchor-jump-highlight.css">
+    
     <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
@@ -573,28 +575,34 @@ See <a href="#targetDomainLabel">Per Container Configuration ➔ Pi-Hole</a>.</p
 <tr>
 <th style="width:35%">Variable</th>
 <th>Description</th>
+<th>Notes</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>NGINX_PROXY_MANAGER_HOST</code></td>
 <td>The URL of your Nginx Proxy Manager instance.</td>
+<td></td>
 </tr>
 <tr>
 <td><code>NGINX_PROXY_MANAGER_USERNAME</code></td>
 <td>Your Nginx Proxy Manager username.</td>
+<td></td>
 </tr>
 <tr>
 <td><code>NGINX_PROXY_MANAGER_PASSWORD</code></td>
 <td>Your Nginx Proxy Manager password. <br> <strong>Important:</strong> It is recommended to create a new non-admin user with only the "Proxy Hosts - Manage" permission.</td>
+<td></td>
 </tr>
 <tr>
 <td><code>PIHOLE_HOST</code></td>
 <td>The URL of your Pi-Hole instance.</td>
+<td>Only required if <a href="#piHoleDisabledEnvVar"><code>PIHOLE_DISABLED</code></a> is set to <code>false</code></td>
 </tr>
 <tr>
 <td><code>PIHOLE_PASSWORD</code></td>
 <td>Your Pi-Hole password. <br> <strong>Important:</strong> It is recommended to create an 'application password' rather than using your actual admin password.</td>
+<td>Only required if <a href="#piHoleDisabledEnvVar"><code>PIHOLE_DISABLED</code></a> is set to <code>false</code></td>
 </tr>
 </tbody>
 </table>
@@ -612,6 +620,11 @@ See <a href="#targetDomainLabel">Per Container Configuration ➔ Pi-Hole</a>.</p
 <td><code>DOCKER_HOST</code></td>
 <td>The URL of a docker socket proxy. If set, you don't need to mount the docker socket as a volume. Querying containers must be allowed (typically done by setting the <code>CONTAINERS</code> environment variable to <code>1</code>).</td>
 <td><em>None</em></td>
+</tr>
+<tr>
+<td><div id="piHoleDisabledEnvVar"><a name="piholeDisabledEnvVar"></a><code>PIHOLE_DISABLED</code></div></td>
+<td>Set to <code>true</code> to disable Pi-Hole functionality</td>
+<td><code>false</code></td>
 </tr>
 <tr>
 <td><code>RUN_INTERVAL</code></td>
@@ -710,7 +723,7 @@ See <a href="#targetDomainLabel">Per Container Configuration ➔ Pi-Hole</a>.</p
 </thead>
 <tbody>
 <tr>
-<td><a name="targetDomainLabel"></a><code>plugNPiN.piholeOptions.targetDomain</code></td>
+<td><div id="targetDomainLabel"><a name="targetDomainLabel"></a><code>plugNPiN.piholeOptions.targetDomain</code></div></td>
 <td>If provided, a CNAME record will be created <strong>instead</strong> of a DNS record</td>
 <td></td>
 </tr>
@@ -822,6 +835,8 @@ See <a href="#targetDomainLabel">Per Container Configuration ➔ Pi-Hole</a>.</p
     
     
       <script src="assets/javascripts/bundle.f55a23d4.min.js"></script>
+      
+        <script src="js/anchor-jump-highlight.js"></script>
       
     
   </body>
