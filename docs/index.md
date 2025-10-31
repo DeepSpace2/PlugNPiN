@@ -39,19 +39,20 @@ See [Per Container Configuration ➔ Pi-Hole](#targetDomainLabel).
 
 #### Required
 
-| Variable {: style="width:35%" } | Description |
-|---|---|
-| `NGINX_PROXY_MANAGER_HOST` | The URL of your Nginx Proxy Manager instance. |
-| `NGINX_PROXY_MANAGER_USERNAME` | Your Nginx Proxy Manager username. |
-| `NGINX_PROXY_MANAGER_PASSWORD` | Your Nginx Proxy Manager password. <br> **Important:** It is recommended to create a new non-admin user with only the "Proxy Hosts - Manage" permission. |
-| `PIHOLE_HOST` | The URL of your Pi-Hole instance. |
-| `PIHOLE_PASSWORD` | Your Pi-Hole password. <br> **Important:** It is recommended to create an 'application password' rather than using your actual admin password. |
+| Variable {: style="width:35%" } | Description | Notes |
+|---|---|---|
+| `NGINX_PROXY_MANAGER_HOST` | The URL of your Nginx Proxy Manager instance. | |
+| `NGINX_PROXY_MANAGER_USERNAME` | Your Nginx Proxy Manager username. | |
+| `NGINX_PROXY_MANAGER_PASSWORD` | Your Nginx Proxy Manager password. <br> **Important:** It is recommended to create a new non-admin user with only the "Proxy Hosts - Manage" permission. | |
+| `PIHOLE_HOST` | The URL of your Pi-Hole instance. | Only required if [`PIHOLE_DISABLED`](#piHoleDisabledEnvVar) is set to `false` |
+| `PIHOLE_PASSWORD` | Your Pi-Hole password. <br> **Important:** It is recommended to create an 'application password' rather than using your actual admin password. | Only required if [`PIHOLE_DISABLED`](#piHoleDisabledEnvVar) is set to `false` |
 
 #### Optional
 
 | Variable {: style="width:35%" } | Description | Default {: style="width:10%" } |
 |---|---|---|
 | `DOCKER_HOST` | The URL of a docker socket proxy. If set, you don't need to mount the docker socket as a volume. Querying containers must be allowed (typically done by setting the `CONTAINERS` environment variable to `1`). | *None* |
+| <div id="piHoleDisabledEnvVar"><a name="piholeDisabledEnvVar"></a>`PIHOLE_DISABLED`</div> | Set to `true` to disable Pi-Hole functionality | `false` |
 | `RUN_INTERVAL` | The interval at which to scan for new containers, in Go's [`time.ParseDuration`](<https://go.dev/pkg/time/#ParseDuration>){: target="_blank" } format. Set to `0` to run once and exit. | `1h` |
 | `TZ` | Customise the timezone. | *None* |
 
@@ -83,7 +84,7 @@ Use the following labels to configure Nginx Proxy Manager entries
 
 | Label {: style="width:35%"} | Description | Default {: style="width:10%"} |
 |---|---|---|
-| <a name="targetDomainLabel"></a>`plugNPiN.piholeOptions.targetDomain` | If provided, a CNAME record will be created **instead** of a DNS record |  |
+| <div id="targetDomainLabel"><a name="targetDomainLabel"></a>`plugNPiN.piholeOptions.targetDomain`</div> | If provided, a CNAME record will be created **instead** of a DNS record |  |
 
 ## Usage
 
