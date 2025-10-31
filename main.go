@@ -40,10 +40,14 @@ func main() {
 		log.Printf("Will run every %v", conf.RunInterval)
 	}
 
-	piholeClient := pihole.NewClient(conf.PiholeHost)
-	err = piholeClient.Login(conf.PiholePassword)
-	if err != nil {
-		log.Fatalf("ERROR failed to login to Pi-Hole: %v", err)
+	var piholeClient *pihole.Client
+
+	if !conf.PiholeDisabled {
+		piholeClient = pihole.NewClient(conf.PiholeHost)
+		err = piholeClient.Login(conf.PiholePassword)
+		if err != nil {
+			log.Fatalf("ERROR failed to login to Pi-Hole: %v", err)
+		}
 	}
 
 	npmClient := npm.NewClient(conf.NpmHost, conf.NpmUsername, conf.NpmPassword)

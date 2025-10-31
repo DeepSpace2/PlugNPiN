@@ -3,6 +3,10 @@
 site_name: PlugNPiN
 site_url: https://deepspace2.github.io/plugnpin
 repo_url: https://github.com/deepspace2/plugnpin
+extra_css:
+  - css/anchor-jump-highlight.css
+extra_javascript:
+  - js/anchor-jump-highlight.js
 theme:
   name: material
   custom_dir: docs/theme/overrides

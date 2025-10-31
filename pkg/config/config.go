@@ -10,11 +10,13 @@ import (
 )
 
 type Config struct {
-	NpmHost        string `env:"NGINX_PROXY_MANAGER_HOST,notEmpty"`
-	NpmPassword    string `env:"NGINX_PROXY_MANAGER_PASSWORD,notEmpty"`
-	NpmUsername    string `env:"NGINX_PROXY_MANAGER_USERNAME,notEmpty"`
-	PiholeHost     string `env:"PIHOLE_HOST,notEmpty"`
-	PiholePassword string `env:"PIHOLE_PASSWORD,notEmpty"`
+	NpmHost     string `env:"NGINX_PROXY_MANAGER_HOST,notEmpty"`
+	NpmPassword string `env:"NGINX_PROXY_MANAGER_PASSWORD,notEmpty"`
+	NpmUsername string `env:"NGINX_PROXY_MANAGER_USERNAME,notEmpty"`
+
+	PiholeDisabled bool   `env:"PIHOLE_DISABLED" envDefault:"false"`
+	PiholeHost     string `env:"PIHOLE_HOST"`
+	PiholePassword string `env:"PIHOLE_PASSWORD"`
 
 	DockerHost  string        `env:"DOCKER_HOST"`
 	RunInterval time.Duration `env:"RUN_INTERVAL" envDefault:"1h"`
@@ -35,6 +37,10 @@ func GetEnvVars() (*Config, error) {
 
 	if !validateRunInterval(config.RunInterval) {
 		return nil, errors.New(`env: environment variable "RUN_INTERVAL" must be >= 0`)
+	}
+
+	if !config.PiholeDisabled && (config.PiholeHost == "" || config.PiholePassword == "") {
+		return nil, errors.New(`env: PIHOLE_HOST or PIHOLE_PASSWORD is not set`)
 	}
 
 	return &config, nil
