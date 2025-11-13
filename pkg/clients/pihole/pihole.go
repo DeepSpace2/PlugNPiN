@@ -130,7 +130,7 @@ func (p *Client) AddDnsRecord(domain, ip string) error {
 	return nil
 }
 
-func (p *Client) DeleteDnsRecord(domain, ip string) error {
+func (p *Client) DeleteDnsRecord(domain string) error {
 	existingRecords, err := p.getDnsRecords()
 	if err != nil {
 		return err
