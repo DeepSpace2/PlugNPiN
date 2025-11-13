@@ -138,7 +138,7 @@ func TestDeleteDnsRecord(t *testing.T) {
 		defer server.Close()
 		client.sid = "test-sid"
 
-		err := client.DeleteDnsRecord("two.com", "2.2.2.2")
+		err := client.DeleteDnsRecord("two.com")
 		assert.NoError(t, err)
 		assert.True(t, patchCalled, "The PATCH endpoint was not called")
 	})
@@ -161,7 +161,7 @@ func TestDeleteDnsRecord(t *testing.T) {
 		defer server.Close()
 		client.sid = "test-sid"
 
-		err := client.DeleteDnsRecord("non-existent.com", "3.3.3.3")
+		err := client.DeleteDnsRecord("non-existent.com")
 		assert.NoError(t, err)
 		assert.False(t, patchCalled, "The PATCH endpoint was called unexpectedly")
 	})

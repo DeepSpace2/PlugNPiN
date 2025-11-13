@@ -41,19 +41,22 @@ func main() {
 	}
 
 	var piholeClient *pihole.Client
+	var npmClient *npm.Client
 
-	if !conf.PiholeDisabled {
-		piholeClient = pihole.NewClient(conf.PiholeHost)
-		err = piholeClient.Login(conf.PiholePassword)
-		if err != nil {
-			log.Fatalf("ERROR failed to login to Pi-Hole: %v", err)
+	if !cliFlags.DryRun {
+		if !conf.PiholeDisabled {
+			piholeClient = pihole.NewClient(conf.PiholeHost)
+			err = piholeClient.Login(conf.PiholePassword)
+			if err != nil {
+				log.Fatalf("ERROR failed to login to Pi-Hole: %v", err)
+			}
 		}
-	}
 
-	npmClient := npm.NewClient(conf.NpmHost, conf.NpmUsername, conf.NpmPassword)
-	err = npmClient.Login()
-	if err != nil {
-		log.Fatalf("ERROR failed to login to Nginx Proxy Manager: %v", err)
+		npmClient = npm.NewClient(conf.NpmHost, conf.NpmUsername, conf.NpmPassword)
+		err = npmClient.Login()
+		if err != nil {
+			log.Fatalf("ERROR failed to login to Nginx Proxy Manager: %v", err)
+		}
 	}
 
 	dockerClient, err := docker.NewClient()

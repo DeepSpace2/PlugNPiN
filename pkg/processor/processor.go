@@ -122,7 +122,7 @@ func (p *Processor) handlePiHole(containerEvent docker.EventType, containerName,
 		case docker.ContainerEvent.Start:
 			if piholeOptions.TargetDomain == "" {
 				log.Printf("Adding a local DNS record to Pi-Hole for container '%v'", containerName)
-				err := p.piholeClient.AddDnsRecord(url, p.npmClient.GetIP())
+				err := p.piholeClient.AddDnsRecord(url, ip)
 				if err != nil {
 					log.Printf("ERROR failed to add a local DNS record to Pi-Hole: %v", err)
 				}
@@ -136,7 +136,7 @@ func (p *Processor) handlePiHole(containerEvent docker.EventType, containerName,
 		case docker.ContainerEvent.Stop, docker.ContainerEvent.Kill:
 			if piholeOptions.TargetDomain == "" {
 				log.Printf("Deleting local DNS record from Pi-Hole for container '%v'", containerName)
-				err := p.piholeClient.DeleteDnsRecord(url, ip)
+				err := p.piholeClient.DeleteDnsRecord(url)
 				if err != nil {
 					log.Printf("ERROR failed to delete local DNS record from Pi-Hole: %v", err)
 				}
@@ -204,6 +204,9 @@ func (p *Processor) processContainer(containerEvent docker.EventType, containerN
 
 	log.Println(msg)
 
-	p.handlePiHole(containerEvent, containerName, url, ip, piholeOptions)
-	p.handleNpm(containerEvent, containerName, url, ip, port, npmProxyHostOptions)
+	if p.npmClient != nil {
+		npmHost := p.npmClient.GetIP()
+		p.handlePiHole(containerEvent, containerName, url, npmHost, piholeOptions)
+		p.handleNpm(containerEvent, containerName, url, ip, port, npmProxyHostOptions)
+	}
 }
