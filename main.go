@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"os"
 	"os/signal"
 	"sync"
@@ -13,8 +13,11 @@ import (
 	"github.com/deepspace2/plugnpin/pkg/clients/npm"
 	"github.com/deepspace2/plugnpin/pkg/clients/pihole"
 	"github.com/deepspace2/plugnpin/pkg/config"
+	"github.com/deepspace2/plugnpin/pkg/logging"
 	"github.com/deepspace2/plugnpin/pkg/processor"
 )
+
+var log = logging.GetLogger()
 
 func shutdown(cancelCtx context.CancelFunc, wg *sync.WaitGroup) {
 	shutdownChan := make(chan os.Signal, 1)
@@ -22,10 +25,10 @@ func shutdown(cancelCtx context.CancelFunc, wg *sync.WaitGroup) {
 
 	<-shutdownChan
 
-	log.Println("Shutdown signal received, exiting gracefully.")
+	log.Info("Shutdown signal received, exiting gracefully.")
 	cancelCtx()
 	wg.Wait()
-	log.Println("Shutdown complete.")
+	log.Info("Shutdown complete.")
 }
 
 func main() {
@@ -33,11 +36,18 @@ func main() {
 
 	conf, err := config.GetEnvVars()
 	if err != nil {
-		log.Fatal(err)
+		log.Error("Failed to parse environment variables", "error", err)
+		os.Exit(1)
+	}
+
+	if conf.Debug {
+		logging.SetLevel(logging.DEBUG)
+	} else {
+		logging.SetLevel(logging.INFO)
 	}
 
 	if conf.RunInterval > 0 {
-		log.Printf("Will run every %v", conf.RunInterval)
+		log.Info(fmt.Sprintf("Will run every %v", conf.RunInterval))
 	}
 
 	var piholeClient *pihole.Client
@@ -48,27 +58,30 @@ func main() {
 			piholeClient = pihole.NewClient(conf.PiholeHost)
 			err = piholeClient.Login(conf.PiholePassword)
 			if err != nil {
-				log.Fatalf("ERROR failed to login to Pi-Hole: %v", err)
+				log.Error("Failed to login to Pi-Hole", "error", err)
+				os.Exit(1)
 			}
 		}
 
 		npmClient = npm.NewClient(conf.NpmHost, conf.NpmUsername, conf.NpmPassword)
 		err = npmClient.Login()
 		if err != nil {
-			log.Fatalf("ERROR failed to login to Nginx Proxy Manager: %v", err)
+			log.Error("Failed to login to Nginx Proxy Manager", "error", err)
+			os.Exit(1)
 		}
 	}
 
 	dockerClient, err := docker.NewClient()
 	if err != nil {
-		log.Fatalf("ERROR creating docker client: %v", err)
+		log.Error("Failed to create docker client", "error", err)
+		os.Exit(1)
 	}
 	defer dockerClient.Close()
 
 	proc := processor.New(dockerClient, piholeClient, npmClient, cliFlags.DryRun)
 
 	if conf.RunInterval == 0 {
-		log.Println("RUN_INTERVAL is 0, will run once")
+		log.Info("RUN_INTERVAL is 0, will run once")
 		proc.RunOnce()
 		return
 	}

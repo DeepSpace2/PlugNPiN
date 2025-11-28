@@ -2,14 +2,20 @@ package config
 
 import (
 	"errors"
-	"log"
+	"fmt"
 	"time"
 
 	"github.com/caarlos0/env/v11"
 	"github.com/joho/godotenv"
+
+	"github.com/deepspace2/plugnpin/pkg/logging"
 )
 
+var log = logging.GetLogger()
+
 type Config struct {
+	Debug bool `env:"DEBUG" envDefault:"false"`
+
 	NpmHost     string `env:"NGINX_PROXY_MANAGER_HOST,notEmpty"`
 	NpmPassword string `env:"NGINX_PROXY_MANAGER_PASSWORD,notEmpty"`
 	NpmUsername string `env:"NGINX_PROXY_MANAGER_USERNAME,notEmpty"`
@@ -28,7 +34,7 @@ func GetEnvVars() (*Config, error) {
 	if err := env.ParseWithOptions(&config, env.Options{
 		OnSet: func(tag string, value any, isDefault bool) {
 			if isDefault {
-				log.Printf(`env: environment variable "%v" is not set, using default value "%v"`, tag, value)
+				log.Info(fmt.Sprintf(`env: environment variable "%v" is not set, using default value "%v"`, tag, value))
 			}
 		},
 	}); err != nil {
