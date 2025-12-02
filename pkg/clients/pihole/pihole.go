@@ -2,13 +2,17 @@ package pihole
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/deepspace2/plugnpin/pkg/clients"
+	"github.com/deepspace2/plugnpin/pkg/logging"
 )
+
+var log = logging.GetLogger()
 
 type Client struct {
 	http.Client
@@ -39,7 +43,7 @@ func (p *Client) Login(password string) error {
 	json.Unmarshal([]byte(loginResponseString), &resp)
 
 	if statusCode >= 400 || resp.Session.Sid == "" {
-		return fmt.Errorf(resp.Session.Message)
+		return errors.New(resp.Session.Message)
 	}
 
 	p.sid = resp.Session.Sid
@@ -63,8 +67,8 @@ func dnsRecordToRaw(domain DomainName, ip IP) string {
 
 func (p *Client) getDnsRecords() (DnsRecords, error) {
 	if p.sid == "" {
-		// TODO:
-		log.Fatal("no SID")
+		log.Error("Missing Pi-Hole session ID")
+		os.Exit(1)
 	}
 	headers["X-FTL-SID"] = p.sid
 	configResponseString, _, err := clients.Get(&p.Client, p.baseURL+"/config", headers)
@@ -113,8 +117,8 @@ func (p *Client) AddDnsRecord(domain, ip string) error {
 	}
 
 	if p.sid == "" {
-		// TODO:
-		log.Fatal("no SID")
+		log.Error("Missing Pi-Hole session ID")
+		os.Exit(1)
 	}
 	headers["X-FTL-SID"] = p.sid
 	resp, statusCode, err := clients.Patch(&p.Client, p.baseURL+"/config", headers, string(payloadString))
@@ -158,8 +162,8 @@ func (p *Client) DeleteDnsRecord(domain string) error {
 	}
 
 	if p.sid == "" {
-		// TODO:
-		log.Fatal("no SID")
+		log.Error("Missing Pi-Hole session ID")
+		os.Exit(1)
 	}
 	headers["X-FTL-SID"] = p.sid
 	resp, statusCode, err := clients.Patch(&p.Client, p.baseURL+"/config", headers, string(payloadString))
@@ -192,8 +196,8 @@ func cNameRecordToRaw(domain DomainName, target Target) string {
 
 func (p *Client) getCNameRecords() (CNameRecords, error) {
 	if p.sid == "" {
-		// TODO:
-		log.Fatal("no SID")
+		log.Error("Missing Pi-Hole session ID")
+		os.Exit(1)
 	}
 	headers["X-FTL-SID"] = p.sid
 	configResponseString, _, err := clients.Get(&p.Client, p.baseURL+"/config", headers)
@@ -242,8 +246,8 @@ func (p *Client) AddCNameRecord(domain, target string) error {
 	}
 
 	if p.sid == "" {
-		// TODO:
-		log.Fatal("no SID")
+		log.Error("Missing Pi-Hole session ID")
+		os.Exit(1)
 	}
 	headers["X-FTL-SID"] = p.sid
 	resp, statusCode, err := clients.Patch(&p.Client, p.baseURL+"/config", headers, string(payloadString))
@@ -287,8 +291,8 @@ func (p *Client) DeleteCNameRecord(domain, target string) error {
 	}
 
 	if p.sid == "" {
-		// TODO:
-		log.Fatal("no SID")
+		log.Error("Missing Pi-Hole session ID")
+		os.Exit(1)
 	}
 	headers["X-FTL-SID"] = p.sid
 	resp, statusCode, err := clients.Patch(&p.Client, p.baseURL+"/config", headers, string(payloadString))

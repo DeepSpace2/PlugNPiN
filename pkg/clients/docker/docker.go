@@ -3,18 +3,21 @@ package docker
 import (
 	"context"
 	"fmt"
-	"log"
 	"slices"
 	"strconv"
 	"strings"
 
-	"github.com/deepspace2/plugnpin/pkg/clients/npm"
-	"github.com/deepspace2/plugnpin/pkg/clients/pihole"
-	"github.com/deepspace2/plugnpin/pkg/errors"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	dockerSdk "github.com/docker/go-sdk/client"
+
+	"github.com/deepspace2/plugnpin/pkg/clients/npm"
+	"github.com/deepspace2/plugnpin/pkg/clients/pihole"
+	"github.com/deepspace2/plugnpin/pkg/errors"
+	"github.com/deepspace2/plugnpin/pkg/logging"
 )
+
+var log = logging.GetLogger()
 
 const (
 	ipLabel  = "plugNPiN.ip"
@@ -49,7 +52,7 @@ func (d *Client) GetRelevantContainers() ([]container.Summary, error) {
 		f.Add("label", label)
 	}
 
-	log.Printf("Getting containers with labels: %v", strings.Join(labels, ", "))
+	log.Info(fmt.Sprintf("Getting containers with labels: %v", strings.Join(labels, ", ")))
 
 	return d.ContainerList(
 		context.Background(),
