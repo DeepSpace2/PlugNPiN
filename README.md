@@ -1,6 +1,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/DeepSpace2/PlugNPiN)](https://goreportcard.com/report/github.com/DeepSpace2/PlugNPiN)
 ![Build Status](https://github.com/DeepSpace2/PlugNPiN/actions/workflows/release.yml/badge.svg)
 [![Release](https://img.shields.io/github/v/release/DeepSpace2/PlugNPiN)](https://github.com/DeepSpace2/PlugNPiN/releases)
+![Pulls](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fghcr-badge.elias.eu.org%2Fapi%2Fdeepspace2%2Fdeepspace2%2Fplugnpin&query=downloadCount&style=flat&logo=docker&label=Docker%20Pulls&color=2496ed)
 
 # 🔌 PlugNPiN
 
