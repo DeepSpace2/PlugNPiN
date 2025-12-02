@@ -2,6 +2,7 @@ package pihole
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -42,7 +43,7 @@ func (p *Client) Login(password string) error {
 	json.Unmarshal([]byte(loginResponseString), &resp)
 
 	if statusCode >= 400 || resp.Session.Sid == "" {
-		return fmt.Errorf(resp.Session.Message)
+		return errors.New(resp.Session.Message)
 	}
 
 	p.sid = resp.Session.Sid
