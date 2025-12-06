@@ -14,6 +14,7 @@ theme:
     repo: fontawesome/brands/github
   features:
     - content.code.copy
+    - content.tooltips
     - navigation.top
     - search.highlight
     - search.share
@@ -45,6 +46,7 @@ extra:
     provider: mike
 markdown_extensions:
   - admonition
+  - abbr
   - attr_list
   - pymdownx.details
   - pymdownx.inlinehilite

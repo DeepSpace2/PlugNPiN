@@ -70,17 +70,18 @@ See [Per Container Configuration ➔ Pi-Hole](#targetDomainLabel).
 
 Use the following labels to configure Nginx Proxy Manager entries
 
-| Label {: style="width:35%"} | Description | Default {: style="width:10%"} |
-|---|---|---|
-| `plugNPiN.npmOptions.blockExploits` | Enables or disables the "Block Common Exploits" option on the proxy host. Set to `true` or `false` | `true` |
-| `plugNPiN.npmOptions.cachingEnabled` | Enables or disables the "Cache Assets" option on the proxy host. Set to `true` or `false`  | `false` |
-| `plugNPiN.npmOptions.certificateName` | Certificate to use for this host. Must already exist on the NPM instance |  |
-| `plugNPiN.npmOptions.forceSsl` | Force SSL | `false` |
-| `plugNPiN.npmOptions.http2Support` | Enable HTTP/2 Support | `false` |
-| `plugNPiN.npmOptions.hstsEnabled` | Enable HSTS | `false` |
-| `plugNPiN.npmOptions.hstsSubdomains` | Enable HSTS Subdomains | `false` |
-| `plugNPiN.npmOptions.scheme` | The scheme used to forward traffic to the container. Can be `http` or `https` | `http` |
-| `plugNPiN.npmOptions.websocketsSupport` | Enables or disables the "Allow Websocket Upgrade" option on the proxy host. Set to `true` or `false` | `false` |
+| Label {: style="width:30%"} | Description | Default {: style="width:10%"} | Notes |
+|---|---|---|---|
+| `plugNPiN.npmOptions.advancedConfig` | Advanced nginx configuration (referred to as `Custom Nginx Configuration` in NPM UI) | | If using a docker compose file make sure to use `|` so new lines will be respected, for example:<pre><code>labels:<br>  - plugNPiN.ip=192.168.0.100:8000<br>  - plugNPiN.url=service.home<br>  - \|<br>    plugNPiN.npmOptions.advancedConfig=location / {<br>      allow 192.168.0.1/15;<br>      deny all;<br>    }</code></pre> |
+| `plugNPiN.npmOptions.blockExploits` | Enables or disables the "Block Common Exploits" option on the proxy host. Set to `true` or `false` | `true` | |
+| `plugNPiN.npmOptions.cachingEnabled` | Enables or disables the "Cache Assets" option on the proxy host. Set to `true` or `false`  | `false` | |
+| `plugNPiN.npmOptions.certificateName` | Certificate to use for this host. Must already exist on the NPM instance |  | |
+| `plugNPiN.npmOptions.forceSsl` | Force SSL | `false` | |
+| `plugNPiN.npmOptions.http2Support` | Enable HTTP/2 Support | `false` | |
+| `plugNPiN.npmOptions.hstsEnabled` | Enable HSTS | `false` | |
+| `plugNPiN.npmOptions.hstsSubdomains` | Enable HSTS Subdomains | `false` | |
+| `plugNPiN.npmOptions.scheme` | The scheme used to forward traffic to the container. Can be `http` or `https` | `http` | |
+| `plugNPiN.npmOptions.websocketsSupport` | Enables or disables the "Allow Websocket Upgrade" option on the proxy host. Set to `true` or `false` | `false` | |
 
 #### Pi-Hole
 
@@ -146,3 +147,5 @@ services:
 ## Contributing
 
 Contributions are very welcome! If you have a feature request, bug report, or want to contribute yourself, please feel free to open an issue or submit a pull request.
+
+*[NPM]: Nginx Proxy Manager

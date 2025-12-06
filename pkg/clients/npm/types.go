@@ -57,6 +57,7 @@ type Location struct {
 }
 
 type ProxyHost struct {
+	AdvancedConfig        string     `json:"advanced_config"`
 	AllowWebsocketUpgrade bool       `json:"allow_websocket_upgrade"`
 	BlockExploits         bool       `json:"block_exploits"`
 	CachingEnabled        bool       `json:"caching_enabled"`
@@ -86,6 +87,7 @@ type Certificates []struct {
 }
 
 type NpmProxyHostOptions struct {
+	AdvancedConfig        string
 	AllowWebsocketUpgrade bool
 	BlockExploits         bool
 	CachingEnabled        bool
