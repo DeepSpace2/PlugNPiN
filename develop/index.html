@@ -708,56 +708,72 @@ See <a href="#targetDomainLabel">Per Container Configuration ➔ Pi-Hole</a>.</p
 <table>
 <thead>
 <tr>
-<th style="width:35%">Label</th>
+<th style="width:30%">Label</th>
 <th>Description</th>
 <th style="width:10%">Default</th>
+<th>Notes</th>
 </tr>
 </thead>
 <tbody>
 <tr>
+<td><code>plugNPiN.npmOptions.advancedConfig</code></td>
+<td>Advanced nginx configuration (referred to as <code>Custom Nginx Configuration</code> in <abbr title="Nginx Proxy Manager">NPM</abbr> UI)</td>
+<td></td>
+<td>If using a docker compose file make sure to use <code>|</code> so new lines will be respected, for example:<pre><code>labels:<br>  - plugNPiN.ip=192.168.0.100:8000<br>  - plugNPiN.url=service.home<br>  - |<br>    plugNPiN.npmOptions.advancedConfig=location / {<br>      allow 192.168.0.1/15;<br>      deny all;<br>    }</code></pre></td>
+</tr>
+<tr>
 <td><code>plugNPiN.npmOptions.blockExploits</code></td>
 <td>Enables or disables the "Block Common Exploits" option on the proxy host. Set to <code>true</code> or <code>false</code></td>
 <td><code>true</code></td>
+<td></td>
 </tr>
 <tr>
 <td><code>plugNPiN.npmOptions.cachingEnabled</code></td>
 <td>Enables or disables the "Cache Assets" option on the proxy host. Set to <code>true</code> or <code>false</code></td>
 <td><code>false</code></td>
+<td></td>
 </tr>
 <tr>
 <td><code>plugNPiN.npmOptions.certificateName</code></td>
-<td>Certificate to use for this host. Must already exist on the NPM instance</td>
+<td>Certificate to use for this host. Must already exist on the <abbr title="Nginx Proxy Manager">NPM</abbr> instance</td>
+<td></td>
 <td></td>
 </tr>
 <tr>
 <td><code>plugNPiN.npmOptions.forceSsl</code></td>
 <td>Force SSL</td>
 <td><code>false</code></td>
+<td></td>
 </tr>
 <tr>
 <td><code>plugNPiN.npmOptions.http2Support</code></td>
 <td>Enable HTTP/2 Support</td>
 <td><code>false</code></td>
+<td></td>
 </tr>
 <tr>
 <td><code>plugNPiN.npmOptions.hstsEnabled</code></td>
 <td>Enable HSTS</td>
 <td><code>false</code></td>
+<td></td>
 </tr>
 <tr>
 <td><code>plugNPiN.npmOptions.hstsSubdomains</code></td>
 <td>Enable HSTS Subdomains</td>
 <td><code>false</code></td>
+<td></td>
 </tr>
 <tr>
 <td><code>plugNPiN.npmOptions.scheme</code></td>
 <td>The scheme used to forward traffic to the container. Can be <code>http</code> or <code>https</code></td>
 <td><code>http</code></td>
+<td></td>
 </tr>
 <tr>
 <td><code>plugNPiN.npmOptions.websocketsSupport</code></td>
 <td>Enables or disables the "Allow Websocket Upgrade" option on the proxy host. Set to <code>true</code> or <code>false</code></td>
 <td><code>false</code></td>
+<td></td>
 </tr>
 </tbody>
 </table>
@@ -881,7 +897,7 @@ See <a href="#targetDomainLabel">Per Container Configuration ➔ Pi-Hole</a>.</p
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": ["content.code.copy", "navigation.top", "search.highlight", "search.share", "search.suggest", "toc.integrate"], "search": "assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": ["content.code.copy", "content.tooltips", "navigation.top", "search.highlight", "search.share", "search.suggest", "toc.integrate"], "search": "assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
     
     
       <script src="assets/javascripts/bundle.e71a0d61.min.js"></script>
