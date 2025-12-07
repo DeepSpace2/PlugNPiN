@@ -2,22 +2,19 @@ package docker
 
 const (
 	start = "start"
-	stop  = "stop"
-	kill  = "kill"
+	die   = "die"
 )
 
 type EventType string
 
 type ContainerEventEnum struct {
 	Start EventType
-	Stop  EventType
-	Kill  EventType
+	Die   EventType
 }
 
 var ContainerEvent = ContainerEventEnum{
 	Start: start,
-	Stop:  stop,
-	Kill:  kill,
+	Die:   die,
 }
 
 func (et EventType) String() string {
@@ -26,9 +23,8 @@ func (et EventType) String() string {
 
 func (ce ContainerEventEnum) ParseString(s string) (EventType, bool) {
 	event, ok := map[string]EventType{
-		"start": ce.Start,
-		"stop":  ce.Stop,
-		"kill":  ce.Kill,
+		start: ce.Start,
+		die:   ce.Die,
 	}[s]
 	return event, ok
 }

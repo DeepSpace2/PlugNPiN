@@ -136,7 +136,7 @@ func (p *Processor) handlePiHole(containerEvent docker.EventType, containerName,
 					log.Error("Failed to add a local CNAME record to Pi-Hole", "container", containerName, "url", url, "targetDomain", piholeOptions.TargetDomain, "error", err)
 				}
 			}
-		case docker.ContainerEvent.Stop, docker.ContainerEvent.Kill:
+		case docker.ContainerEvent.Die:
 			if piholeOptions.TargetDomain == "" {
 				log.Info("Deleting local DNS record from Pi-Hole", "container", containerName, "url", url)
 				err := p.piholeClient.DeleteDnsRecord(url)
@@ -187,7 +187,7 @@ func (p *Processor) handleNpm(containerEvent docker.EventType, containerName, ur
 		if err != nil {
 			log.Error("Failed to add entry to Nginx Proxy Manager", "container", containerName, "error", err)
 		}
-	case docker.ContainerEvent.Stop, docker.ContainerEvent.Kill:
+	case docker.ContainerEvent.Die:
 		log.Info("Deleting entry from Nginx Proxy Manager", "container", containerName)
 		err := p.npmClient.DeleteProxyHost(url)
 		if err != nil {

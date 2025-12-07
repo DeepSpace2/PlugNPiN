@@ -18,8 +18,7 @@ func Listen(ctx context.Context, handler func(events.Message)) error {
 	f := filters.NewArgs()
 	f.Add("type", "container")
 	f.Add("event", ContainerEvent.Start.String())
-	f.Add("event", ContainerEvent.Stop.String())
-	f.Add("event", ContainerEvent.Kill.String())
+	f.Add("event", ContainerEvent.Die.String())
 
 	log.Info("Listening for Docker events...")
 
