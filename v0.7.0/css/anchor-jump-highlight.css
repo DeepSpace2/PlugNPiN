@@ -1,0 +1,4 @@
+.highlight-target {
+  background-color: rgba(63, 81, 185, 0.4);
+  transition: background-color 0.5s ease-in-out;
+}
