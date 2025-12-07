@@ -23,6 +23,7 @@ const (
 	ipLabel  = "plugNPiN.ip"
 	urlLabel = "plugNPiN.url"
 
+	npmOptionsAdvancedConfigLabel    = "plugNPiN.npmOptions.advancedConfig"
 	npmOptionsBlockExploitsLabel     = "plugNPiN.npmOptions.blockExploits"
 	npmOptionsCachingEnabledLabel    = "plugNPiN.npmOptions.cachingEnabled"
 	npmOptionsCertificateNameLabel   = "plugNPiN.npmOptions.certificateName"
@@ -108,6 +109,7 @@ func GetValuesFromLabels(labels map[string]string) (ip, url string, port int, np
 		}
 	}
 
+	npmOptionsAdvancedConfig := labels[npmOptionsAdvancedConfigLabel]
 	npmOptionsCertificateName := labels[npmOptionsCertificateNameLabel]
 	npmOptionsHTTP2Support, _ := strconv.ParseBool(labels[npmOptionsHTTP2SupportLabel])
 	npmOptionsHstsEnabled, _ := strconv.ParseBool(labels[npmOptionsHstsEnabledLabel])
@@ -115,6 +117,7 @@ func GetValuesFromLabels(labels map[string]string) (ip, url string, port int, np
 	npmOptionsSslForced, _ := strconv.ParseBool(labels[npmOptionsSslForcedLabel])
 
 	npmProxyHostOptions = &npm.NpmProxyHostOptions{
+		AdvancedConfig:        npmOptionsAdvancedConfig,
 		AllowWebsocketUpgrade: npmOptionsWebsocketsSupport,
 		BlockExploits:         npmOptionsBlockExploits,
 		CachingEnabled:        npmOptionsCachingEnabled,

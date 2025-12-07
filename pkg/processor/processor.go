@@ -158,6 +158,7 @@ func (p *Processor) handleNpm(containerEvent docker.EventType, containerName, ur
 	switch containerEvent {
 	case docker.ContainerEvent.Start:
 		npmProxyHost := npm.ProxyHost{
+			AdvancedConfig:        npmProxyHostOptions.AdvancedConfig,
 			AllowWebsocketUpgrade: npmProxyHostOptions.AllowWebsocketUpgrade,
 			BlockExploits:         npmProxyHostOptions.BlockExploits,
 			CachingEnabled:        npmProxyHostOptions.CachingEnabled,
