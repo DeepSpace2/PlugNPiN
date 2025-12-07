@@ -2,10 +2,14 @@ package logging
 
 import (
 	"log/slog"
+	"os"
 )
 
 var (
-	log   = slog.With()
+	levelVar = new(slog.LevelVar)
+	log      = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: levelVar,
+	}))
 	DEBUG = slog.LevelDebug
 	INFO  = slog.LevelInfo
 )
@@ -15,6 +19,6 @@ func GetLogger() *slog.Logger {
 }
 
 func SetLevel(level slog.Level) {
-	slog.SetLogLoggerLevel(level)
+	levelVar.Set(level)
 	slog.SetDefault(log)
 }

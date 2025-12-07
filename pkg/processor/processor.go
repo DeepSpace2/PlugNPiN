@@ -124,30 +124,30 @@ func (p *Processor) handlePiHole(containerEvent docker.EventType, containerName,
 		switch containerEvent {
 		case docker.ContainerEvent.Start:
 			if piholeOptions.TargetDomain == "" {
-				log.Info(fmt.Sprintf("Adding a local DNS record to Pi-Hole for container '%v'", containerName), "container", containerName)
+				log.Info("Adding a local DNS record to Pi-Hole", "container", containerName, "url", url, "ip", ip)
 				err := p.piholeClient.AddDnsRecord(url, ip)
 				if err != nil {
-					log.Error("Failed to add a local DNS record to Pi-Hole", "error", err, "container", containerName, "url", url, "ip", ip)
+					log.Error("Failed to add a local DNS record to Pi-Hole", "container", containerName, "url", url, "ip", ip, "error", err)
 				}
 			} else {
-				log.Info(fmt.Sprintf("Adding a local CNAME record to Pi-Hole for container '%v'", containerName), "container", containerName)
+				log.Info("Adding a local CNAME record to Pi-Hole", "container", containerName, "url", url, "targetDomain", piholeOptions.TargetDomain)
 				err := p.piholeClient.AddCNameRecord(url, piholeOptions.TargetDomain)
 				if err != nil {
-					log.Error("Failed to add a local CNAME record to Pi-Hole", "error", err, "container", containerName, "url", url)
+					log.Error("Failed to add a local CNAME record to Pi-Hole", "container", containerName, "url", url, "targetDomain", piholeOptions.TargetDomain, "error", err)
 				}
 			}
 		case docker.ContainerEvent.Stop, docker.ContainerEvent.Kill:
 			if piholeOptions.TargetDomain == "" {
-				log.Info(fmt.Sprintf("Deleting local DNS record from Pi-Hole for container '%v'", containerName), "container", containerName)
+				log.Info("Deleting local DNS record from Pi-Hole", "container", containerName, "url", url)
 				err := p.piholeClient.DeleteDnsRecord(url)
 				if err != nil {
-					log.Error("Failed to delete local DNS record from Pi-Hole", "error", err, "container", containerName, "url", url)
+					log.Error("Failed to delete local DNS record from Pi-Hole", "container", containerName, "url", url, "error", err)
 				}
 			} else {
-				log.Info(fmt.Sprintf("Deleting local CNAME record from Pi-Hole for container '%v'", containerName), "container", containerName)
+				log.Info("Deleting local CNAME record from Pi-Hole", "container", containerName, "url", url, "targetDomain", piholeOptions.TargetDomain)
 				err := p.piholeClient.DeleteCNameRecord(url, piholeOptions.TargetDomain)
 				if err != nil {
-					log.Error("Failed to delete local CNAME record from Pi-Hole", "error", err, "containe", containerName, "url", url)
+					log.Error("Failed to delete local CNAME record from Pi-Hole", "container", containerName, "url", url, "targetDomain", piholeOptions.TargetDomain, "error", err)
 				}
 			}
 		}
@@ -181,31 +181,31 @@ func (p *Processor) handleNpm(containerEvent docker.EventType, containerName, ur
 			}
 		}
 
-		log.Info(fmt.Sprintf("Adding entry to Nginx Proxy Manager for container '%v'", containerName), "container", containerName)
+		log.Info("Adding entry to Nginx Proxy Manager", "container", containerName)
 
 		err := p.npmClient.AddProxyHost(npmProxyHost)
 		if err != nil {
-			log.Error("Failed to add entry to Nginx Proxy Manager", "error", err, "container", containerName)
+			log.Error("Failed to add entry to Nginx Proxy Manager", "container", containerName, "error", err)
 		}
 	case docker.ContainerEvent.Stop, docker.ContainerEvent.Kill:
-		log.Info(fmt.Sprintf("Deleting entry from Nginx Proxy Manager for container '%v'", containerName))
+		log.Info("Deleting entry from Nginx Proxy Manager", "container", containerName)
 		err := p.npmClient.DeleteProxyHost(url)
 		if err != nil {
-			log.Error("Failed to delete entry from Nginx Proxy Manager: %v", "error", err, "container", containerName)
+			log.Error("Failed to delete entry from Nginx Proxy Manager", "container", containerName, "error", err)
 		}
 	}
 }
 
 func (p *Processor) processContainer(containerEvent docker.EventType, containerName, ip, url string, port int, piholeOptions pihole.PiHoleOptions, npmProxyHostOptions npm.NpmProxyHostOptions) {
-	msg := fmt.Sprintf("Handling container container=%v, ip=%v, port=%v, host=%v", containerName, ip, port, url)
+	msg := "Handling container"
 
 	if p.dryRun {
 		msg += ". In dry run mode, not doing anything."
-		log.Info(msg)
+		log.Info(msg, "container", containerName, "ip", ip, "port", port, "url", url)
 		return
 	}
 
-	log.Info(msg)
+	log.Info(msg, "container", containerName, "ip", ip, "port", port, "url", url)
 
 	if p.npmClient != nil {
 		npmHost := p.npmClient.GetIP()
