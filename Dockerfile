@@ -1,4 +1,4 @@
-FROM golang:1.24.5-alpine AS builder
+FROM golang:1.25.4-alpine AS builder
 
 LABEL org.opencontainers.image.source=https://github.com/DeepSpace2/plugnpin
 

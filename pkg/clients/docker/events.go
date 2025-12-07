@@ -2,7 +2,6 @@ package docker
 
 import (
 	"context"
-	"log"
 
 	"github.com/docker/docker/api/types/events"
 	"github.com/docker/docker/api/types/filters"
@@ -22,7 +21,7 @@ func Listen(ctx context.Context, handler func(events.Message)) error {
 	f.Add("event", ContainerEvent.Stop.String())
 	f.Add("event", ContainerEvent.Kill.String())
 
-	log.Println("Listening for Docker events...")
+	log.Info("Listening for Docker events...")
 
 	messages, errs := c.Events(ctx, events.ListOptions{
 		Filters: f,
@@ -31,13 +30,13 @@ func Listen(ctx context.Context, handler func(events.Message)) error {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Printf("Stopping stream of Docker events")
+			log.Info("Stopping stream of Docker events")
 			return ctx.Err()
 		case event := <-messages:
 			handler(event)
 		case err := <-errs:
 			if err != nil {
-				log.Printf("Error receiving event: %v", err)
+				log.Error("Failed to receive event", "error", err)
 			}
 			return err
 		}

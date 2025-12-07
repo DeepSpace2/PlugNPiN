@@ -52,6 +52,7 @@ See [Per Container Configuration ➔ Pi-Hole](#targetDomainLabel).
 
 | Variable {: style="width:35%" } | Description | Default {: style="width:10%" } |
 |---|---|---|
+| `DEBUG` | Set to `true` to enable DEBUG level logs | `false` |
 | `DOCKER_HOST` | The URL of a docker socket proxy. If set, you don't need to mount the docker socket as a volume. Querying containers must be allowed (typically done by setting the `CONTAINERS` environment variable to `1`). | *None* |
 | <div id="piHoleDisabledEnvVar"><a name="piholeDisabledEnvVar"></a>`PIHOLE_DISABLED`</div> | Set to `true` to disable Pi-Hole functionality | `false` |
 | `RUN_INTERVAL` | The interval at which to scan for new containers, in Go's [`time.ParseDuration`](<https://go.dev/pkg/time/#ParseDuration>){: target="_blank" } format. Set to `0` to run once and exit. | `1h` |

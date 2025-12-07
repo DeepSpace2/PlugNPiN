@@ -4,12 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 
 	"github.com/deepspace2/plugnpin/pkg/clients"
+	"github.com/deepspace2/plugnpin/pkg/logging"
 )
+
+var log = logging.GetLogger()
 
 type Client struct {
 	http.Client
@@ -86,7 +88,7 @@ func (n *Client) getProxyHosts() (map[string]int, error) {
 }
 
 func (n *Client) refreshToken() error {
-	log.Println("Refreshing Nginx Proxy Manager token")
+	log.Info("Refreshing Nginx Proxy Manager token")
 	return n.Login()
 }
 
