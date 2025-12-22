@@ -138,19 +138,20 @@ func (n *Client) AddProxyHost(host ProxyHost) error {
 
 	payloadString := string(payloadBytes)
 	resp, statusCode, err := clients.Post(&n.Client, n.baseURL+"/nginx/proxy-hosts", headers, &payloadString)
-	if err != nil {
-		return err
-	}
+
 	if statusCode == 401 {
 		err := n.refreshToken()
 		if err != nil {
 			return err
 		}
-		_, _, err = clients.Post(&n.Client, n.baseURL+"/nginx/proxy-hosts", headers, &payloadString)
-		if err != nil {
-			return err
-		}
-	} else if statusCode >= 400 {
+		resp, statusCode, err = clients.Post(&n.Client, n.baseURL+"/nginx/proxy-hosts", headers, &payloadString)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	if statusCode >= 400 {
 		var errorResponse ErrorResponse
 		json.Unmarshal([]byte(resp), &errorResponse)
 		return errors.New(errorResponse.Error.Message)
@@ -170,20 +171,20 @@ func (n *Client) DeleteProxyHost(domain string) error {
 
 	url := fmt.Sprintf("%v/nginx/proxy-hosts/%v", n.baseURL, hostID)
 	resp, statusCode, err := clients.Delete(&n.Client, url, headers)
-	if err != nil {
-		return err
-	}
 
 	if statusCode == 401 {
 		err := n.refreshToken()
 		if err != nil {
 			return err
 		}
-		_, _, err = clients.Delete(&n.Client, url, headers)
-		if err != nil {
-			return err
-		}
-	} else if statusCode >= 400 {
+		resp, statusCode, err = clients.Delete(&n.Client, url, headers)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	if statusCode >= 400 {
 		var errorResponse ErrorResponse
 		json.Unmarshal([]byte(resp), &errorResponse)
 		return errors.New(errorResponse.Error.Message)
