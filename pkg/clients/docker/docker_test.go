@@ -60,17 +60,18 @@ func TestGetParsedContainerName(t *testing.T) {
 
 func TestGetValuesFromContainerLabels(t *testing.T) {
 	testCases := []struct {
-		name                                string
-		container                           container.Summary
-		expectedIP                          string
-		expectedURL                         string
-		expectedPort                        int
-		expectedErr                         error
-		expectedNpmOptionsBlockExploits     bool
-		expectedNpmOptionsCachingEnabled    bool
-		expectedNpmOptionsScheme            string
-		expectedNpmOptionsWebsocketsSupport bool
-		expectedPiholeOptionsTargetDomain   string
+		name                                  string
+		container                             container.Summary
+		expectedIP                            string
+		expectedURL                           string
+		expectedPort                          int
+		expectedErr                           error
+		expectedAdguardHomeOptionsTargetDomain string
+		expectedNpmOptionsBlockExploits       bool
+		expectedNpmOptionsCachingEnabled      bool
+		expectedNpmOptionsScheme              string
+		expectedNpmOptionsWebsocketsSupport   bool
+		expectedPiholeOptionsTargetDomain     string
 	}{
 		{
 			name: "Happy path",
@@ -261,22 +262,46 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 			expectedNpmOptionsBlockExploits:   true,
 			expectedPiholeOptionsTargetDomain: "custom.domain",
 		},
+		{
+			name: "AdguardHome options - target domain",
+			container: container.Summary{
+				Labels: map[string]string{
+					ipLabel:                             "192.168.1.10:8080",
+					urlLabel:                            "my-service.example.com",
+					adguardHomeOptionsTargetDomainLabel: "custom.domain.adguard",
+				},
+			},
+			expectedIP:                             "192.168.1.10",
+			expectedURL:                            "my-service.example.com",
+			expectedPort:                           8080,
+			expectedErr:                            nil,
+			expectedNpmOptionsScheme:               "http",
+			expectedNpmOptionsBlockExploits:        true,
+			expectedAdguardHomeOptionsTargetDomain: "custom.domain.adguard",
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ip, url, port, npmOptions, piholeOptions, err := GetValuesFromLabels(tc.container.Labels)
+			ip, url, port, opts, err := GetValuesFromLabels(tc.container.Labels)
 
 			assert.Equal(t, tc.expectedIP, ip)
 			assert.Equal(t, tc.expectedURL, url)
 			assert.Equal(t, tc.expectedPort, port)
 			assert.Equal(t, tc.expectedErr, err)
 			if err == nil {
-				assert.Equal(t, tc.expectedNpmOptionsBlockExploits, npmOptions.BlockExploits)
-				assert.Equal(t, tc.expectedNpmOptionsCachingEnabled, npmOptions.CachingEnabled)
-				assert.Equal(t, tc.expectedNpmOptionsScheme, npmOptions.ForwardScheme)
-				assert.Equal(t, tc.expectedNpmOptionsWebsocketsSupport, npmOptions.AllowWebsocketUpgrade)
-				assert.Equal(t, tc.expectedPiholeOptionsTargetDomain, piholeOptions.TargetDomain)
+				assert.NotNil(t, opts)
+				assert.NotNil(t, opts.NPM)
+				assert.NotNil(t, opts.Pihole)
+				assert.NotNil(t, opts.AdguardHome)
+				assert.Equal(t, tc.expectedNpmOptionsBlockExploits, opts.NPM.BlockExploits)
+				assert.Equal(t, tc.expectedNpmOptionsCachingEnabled, opts.NPM.CachingEnabled)
+				assert.Equal(t, tc.expectedNpmOptionsScheme, opts.NPM.ForwardScheme)
+				assert.Equal(t, tc.expectedNpmOptionsWebsocketsSupport, opts.NPM.AllowWebsocketUpgrade)
+				assert.Equal(t, tc.expectedPiholeOptionsTargetDomain, opts.Pihole.TargetDomain)
+				assert.Equal(t, tc.expectedAdguardHomeOptionsTargetDomain, opts.AdguardHome.TargetDomain)
+			} else {
+				assert.Nil(t, opts)
 			}
 		})
 	}
