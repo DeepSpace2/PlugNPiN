@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/deepspace2/plugnpin/pkg/cli"
+	"github.com/deepspace2/plugnpin/pkg/clients/adguardhome"
 	"github.com/deepspace2/plugnpin/pkg/clients/docker"
 	"github.com/deepspace2/plugnpin/pkg/clients/npm"
 	"github.com/deepspace2/plugnpin/pkg/clients/pihole"
@@ -50,6 +51,7 @@ func main() {
 		log.Info(fmt.Sprintf("Will run every %v", conf.RunInterval))
 	}
 
+	var adguardHomeClient *adguardhome.Client
 	var piholeClient *pihole.Client
 	var npmClient *npm.Client
 
@@ -61,6 +63,10 @@ func main() {
 				log.Error("Failed to login to Pi-Hole", "error", err)
 				os.Exit(1)
 			}
+		}
+
+		if !conf.AdguardHomeDisabled {
+			adguardHomeClient = adguardhome.NewClient(conf.AdguardHomeHost, conf.AdguardHomeUsername, conf.AdguardHomePassword)
 		}
 
 		npmClient = npm.NewClient(conf.NpmHost, conf.NpmUsername, conf.NpmPassword)
@@ -78,7 +84,7 @@ func main() {
 	}
 	defer dockerClient.Close()
 
-	proc := processor.New(dockerClient, piholeClient, npmClient, cliFlags.DryRun)
+	proc := processor.New(dockerClient, adguardHomeClient, piholeClient, npmClient, cliFlags.DryRun)
 
 	if conf.RunInterval == 0 {
 		log.Info("RUN_INTERVAL is 0, will run once")

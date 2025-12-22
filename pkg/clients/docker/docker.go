@@ -11,11 +11,18 @@ import (
 	"github.com/docker/docker/api/types/filters"
 	dockerSdk "github.com/docker/go-sdk/client"
 
+	"github.com/deepspace2/plugnpin/pkg/clients/adguardhome"
 	"github.com/deepspace2/plugnpin/pkg/clients/npm"
 	"github.com/deepspace2/plugnpin/pkg/clients/pihole"
 	"github.com/deepspace2/plugnpin/pkg/errors"
 	"github.com/deepspace2/plugnpin/pkg/logging"
 )
+
+type ClientOptions struct {
+	AdguardHome *adguardhome.AdguardHomeOptions
+	Pihole      *pihole.PiHoleOptions
+	NPM         *npm.NpmProxyHostOptions
+}
 
 var log = logging.GetLogger()
 
@@ -23,17 +30,18 @@ const (
 	ipLabel  = "plugNPiN.ip"
 	urlLabel = "plugNPiN.url"
 
-	npmOptionsAdvancedConfigLabel    = "plugNPiN.npmOptions.advancedConfig"
-	npmOptionsBlockExploitsLabel     = "plugNPiN.npmOptions.blockExploits"
-	npmOptionsCachingEnabledLabel    = "plugNPiN.npmOptions.cachingEnabled"
-	npmOptionsCertificateNameLabel   = "plugNPiN.npmOptions.certificateName"
-	npmOptionsHTTP2SupportLabel      = "plugNPiN.npmOptions.http2Support"
-	npmOptionsHstsEnabledLabel       = "plugNPiN.npmOptions.hstsEnabled"
-	npmOptionsHstsSubdomainsLabel    = "plugNPiN.npmOptions.hstsSubdomains"
-	npmOptionsSchemeLabel            = "plugNPiN.npmOptions.scheme"
-	npmOptionsSslForcedLabel         = "plugNPiN.npmOptions.forceSsl"
-	npmOptionsWebsocketsSupportLabel = "plugNPiN.npmOptions.websocketsSupport"
-	piholeOptionsTargetDomainLabel   = "plugNPiN.piholeOptions.targetDomain"
+	adguardHomeOptionsTargetDomainLabel = "plugNPiN.adguardHomeOptions.targetDomain"
+	npmOptionsAdvancedConfigLabel       = "plugNPiN.npmOptions.advancedConfig"
+	npmOptionsBlockExploitsLabel        = "plugNPiN.npmOptions.blockExploits"
+	npmOptionsCachingEnabledLabel       = "plugNPiN.npmOptions.cachingEnabled"
+	npmOptionsCertificateNameLabel      = "plugNPiN.npmOptions.certificateName"
+	npmOptionsHTTP2SupportLabel         = "plugNPiN.npmOptions.http2Support"
+	npmOptionsHstsEnabledLabel          = "plugNPiN.npmOptions.hstsEnabled"
+	npmOptionsHstsSubdomainsLabel       = "plugNPiN.npmOptions.hstsSubdomains"
+	npmOptionsSchemeLabel               = "plugNPiN.npmOptions.scheme"
+	npmOptionsSslForcedLabel            = "plugNPiN.npmOptions.forceSsl"
+	npmOptionsWebsocketsSupportLabel    = "plugNPiN.npmOptions.websocketsSupport"
+	piholeOptionsTargetDomainLabel      = "plugNPiN.piholeOptions.targetDomain"
 )
 
 var labels []string = []string{ipLabel, urlLabel}
@@ -67,27 +75,29 @@ func GetParsedContainerName(container container.Summary) string {
 	return strings.Trim(container.Names[0], "/")
 }
 
-func GetValuesFromLabels(labels map[string]string) (ip, url string, port int, npmProxyHostOptions *npm.NpmProxyHostOptions, piholeOptions *pihole.PiHoleOptions, err error) {
+func GetValuesFromLabels(labels map[string]string) (ip, url string, port int, opts *ClientOptions, err error) {
 	ip, ok := labels[ipLabel]
 	if !ok {
-		return "", "", 0, nil, nil, &errors.NonExistingLabelsError{Msg: fmt.Sprintf("missing %s label", ipLabel)}
+		return "", "", 0, nil, &errors.NonExistingLabelsError{Msg: fmt.Sprintf("missing %s label", ipLabel)}
 	}
 	url, ok = labels[urlLabel]
 	if !ok {
-		return "", "", 0, nil, nil, &errors.NonExistingLabelsError{Msg: fmt.Sprintf("missing %s label", urlLabel)}
+		return "", "", 0, nil, &errors.NonExistingLabelsError{Msg: fmt.Sprintf("missing %s label", urlLabel)}
 	}
 
 	splitIPAndPort := strings.Split(ip, ":")
 	if len(splitIPAndPort) == 1 {
-		return "", "", 0, nil, nil, &errors.MalformedIPLabelError{Msg: fmt.Sprintf("missing ':' in value of '%v' label", ipLabel)}
+		return "", "", 0, nil, &errors.MalformedIPLabelError{Msg: fmt.Sprintf("missing ':' in value of '%v' label", ipLabel)}
 	}
 	ip = splitIPAndPort[0]
 	port, err = strconv.Atoi(splitIPAndPort[1])
 	if err != nil {
-		return "", "", 0, nil, nil, &errors.MalformedIPLabelError{
+		return "", "", 0, nil, &errors.MalformedIPLabelError{
 			Msg: fmt.Sprintf("value after ':' in value of '%v' label must be an integer, got '%v'", ipLabel, splitIPAndPort[1]),
 		}
 	}
+
+	opts = &ClientOptions{}
 
 	npmOptionsBlockExploitsLabelValue, exists := labels[npmOptionsBlockExploitsLabel]
 	if !exists {
@@ -104,7 +114,7 @@ func GetValuesFromLabels(labels map[string]string) (ip, url string, port int, np
 	}
 	npmOptionsScheme = strings.ToLower(npmOptionsScheme)
 	if !slices.Contains([]string{"http", "https"}, npmOptionsScheme) {
-		return "", "", 0, nil, nil, &errors.InvalidSchemeError{
+		return "", "", 0, nil, &errors.InvalidSchemeError{
 			Msg: fmt.Sprintf("value of '%v' label must be one of 'http', 'https', got '%v'", npmOptionsSchemeLabel, npmOptionsScheme),
 		}
 	}
@@ -116,7 +126,7 @@ func GetValuesFromLabels(labels map[string]string) (ip, url string, port int, np
 	npmOptionsHstsSubdomains, _ := strconv.ParseBool(labels[npmOptionsHstsSubdomainsLabel])
 	npmOptionsSslForced, _ := strconv.ParseBool(labels[npmOptionsSslForcedLabel])
 
-	npmProxyHostOptions = &npm.NpmProxyHostOptions{
+	opts.NPM = &npm.NpmProxyHostOptions{
 		AdvancedConfig:        npmOptionsAdvancedConfig,
 		AllowWebsocketUpgrade: npmOptionsWebsocketsSupport,
 		BlockExploits:         npmOptionsBlockExploits,
@@ -131,9 +141,15 @@ func GetValuesFromLabels(labels map[string]string) (ip, url string, port int, np
 
 	piholeOptionsTargetDomain := labels[piholeOptionsTargetDomainLabel]
 
-	piholeOptions = &pihole.PiHoleOptions{
+	opts.Pihole = &pihole.PiHoleOptions{
 		TargetDomain: piholeOptionsTargetDomain,
 	}
 
-	return ip, url, port, npmProxyHostOptions, piholeOptions, nil
+	adguardHomeOptionsTargetDomain := labels[adguardHomeOptionsTargetDomainLabel]
+
+	opts.AdguardHome = &adguardhome.AdguardHomeOptions{
+		TargetDomain: adguardHomeOptionsTargetDomain,
+	}
+
+	return ip, url, port, opts, nil
 }

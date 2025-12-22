@@ -5,11 +5,14 @@
 
 # 🔌 PlugNPiN
 
-**Plug and play your docker containers into Pi-Hole & Nginx Proxy Manager**
+**Plug and play your docker containers into Pi-Hole/AdGuard Home & Nginx Proxy Manager**
 
 Automatically detect running Docker containers based on labels, add them
-as local DNS/[CNAME](#targetDomainLabel) records in **Pi-Hole** and create matching proxy hosts in
+as local DNS/[CNAME](#piholeTargetDomainLabel) records in **Pi-Hole** (or DNS Rewrites in **AdGuard Home**) and create matching proxy hosts in
 **Nginx Proxy Manager**.
+
+**Pi-Hole's and AdGuard Home's functionality can be toggled individually. By default Pi-Hole is enabled and AdGuard Home is disabled.**
+See [Optional Environment Variables](#optional).
 
 ## How It Works
 
@@ -26,13 +29,23 @@ The application operates in two complementary modes to keep your services synchr
 
 When a container is processed in either mode, PlugNPiN will:
 
-1. Create a DNS record pointing the specified `url` to the `ip` address on **Pi-Hole** (or a [CNAME record](#targetDomainLabel) pointing to a configurable target domain).
+1. Create a DNS record pointing the specified `url` to the `ip` address on **Pi-Hole/AdGuard Home** (or a CNAME record pointing to a configurable target domain).
 2. Create a proxy host to route traffic from the `url` to the container's `ip` and `port` on **Nginx Proxy Manager**.
 
 ### CNAME Records
 
-It is possible to force PlugNPiN to create CNAME records instead of local DNS records ("A record") in Pi-Hole by setting the `plugNPiN.piholeOptions.targetDomain` label.
-See [Per Container Configuration ➔ Pi-Hole](#targetDomainLabel).
+#### AdGuard Home
+
+To create a DNS Rewrite as a CNAME, set the `plugNPiN.adguardHomeOptions.targetDomain` label.
+
+See [Per Container Configuration ➔ AdGuard Home](#adguardHomeTargetDomainLabel).
+
+#### Pi-Hole
+
+To create A CNAME record instead of local DNS records ("A record"), set the `plugNPiN.piholeOptions.targetDomain` label.
+
+See [Per Container Configuration ➔ Pi-Hole](#piholeTargetDomainLabel).
+
 
 ## Configuration
 
@@ -42,6 +55,9 @@ See [Per Container Configuration ➔ Pi-Hole](#targetDomainLabel).
 
 | Variable {: style="width:35%" } | Description | Notes |
 |---|---|---|
+| `ADGUARD_HOME_HOST` | The URL of your AdGuard Home instance | Only required if [`ADGUARD_HOME_DISABLED`](#adguardHomeDisabledEnvVar) is set to `false` |
+| `ADGUARD_HOME_USERNAME` | Your AdGuard Home username | Only required if [`ADGUARD_HOME_DISABLED`](#adguardHomeDisabledEnvVar) is set to `false` |
+| `ADGUARD_HOME_PASSWORD` | Your AdGuard Home password | Only required if [`ADGUARD_HOME_DISABLED`](#adguardHomeDisabledEnvVar) is set to `false` |
 | `NGINX_PROXY_MANAGER_HOST` | The URL of your Nginx Proxy Manager instance. | |
 | `NGINX_PROXY_MANAGER_USERNAME` | Your Nginx Proxy Manager username. | |
 | `NGINX_PROXY_MANAGER_PASSWORD` | Your Nginx Proxy Manager password. <br> **Important:** It is recommended to create a new non-admin user with only the "Proxy Hosts - Manage" permission. | |
@@ -52,6 +68,7 @@ See [Per Container Configuration ➔ Pi-Hole](#targetDomainLabel).
 
 | Variable {: style="width:35%" } | Description | Default {: style="width:10%" } |
 |---|---|---|
+| <div id="adguardHomeDisabledEnvVar"><a name="adguardHomeDisabledEnvVar"></a>`ADGUARD_HOME_DISABLED`</div> | Set to `false` to enable AdGuard Home functionality | `true` |
 | `DEBUG` | Set to `true` to enable DEBUG level logs | `false` |
 | `DOCKER_HOST` | The URL of a docker socket proxy. If set, you don't need to mount the docker socket as a volume. Querying containers must be allowed (typically done by setting the `CONTAINERS` environment variable to `1`). | *None* |
 | <div id="piHoleDisabledEnvVar"><a name="piholeDisabledEnvVar"></a>`PIHOLE_DISABLED`</div> | Set to `true` to disable Pi-Hole functionality | `false` |
@@ -65,6 +82,12 @@ See [Per Container Configuration ➔ Pi-Hole](#targetDomainLabel).
 | `--dry-run`, `-d` | Simulates the process of adding DNS/CNAME records and proxy hosts without making any actual changes to Pi-Hole or Nginx Proxy Manager. |
 
 ### Per Container Configuration
+
+#### AdGuard Home
+
+| Label {: style="width:45%"} | Description | Default {: style="width:10%"} |
+|---|---|---|
+| <div id="adguardHomeTargetDomainLabel"><a name="adguardHomeTargetDomainLabel"></a>`plugNPiN.adguardHomeOptions.targetDomain`</div> | If provided, a CNAME DNS Rewrite will be created  |  |
 
 #### Nginx Proxy Manager
 
@@ -87,7 +110,8 @@ Use the following labels to configure Nginx Proxy Manager entries
 
 | Label {: style="width:35%"} | Description | Default {: style="width:10%"} |
 |---|---|---|
-| <div id="targetDomainLabel"><a name="targetDomainLabel"></a>`plugNPiN.piholeOptions.targetDomain`</div> | If provided, a CNAME record will be created **instead** of a DNS record |  |
+| <div id="piholeTargetDomainLabel"><a name="piholeTargetDomainLabel"></a>`plugNPiN.piholeOptions.targetDomain`</div> | If provided, a CNAME record will be created **instead** of a DNS record |  |
+
 
 ## Usage
 
