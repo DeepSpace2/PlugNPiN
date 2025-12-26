@@ -16,8 +16,9 @@ var log = logging.GetLogger()
 
 type Client struct {
 	http.Client
-	baseURL string
-	sid     string
+	baseURL  string
+	password string
+	sid      string
 }
 
 var headers map[string]string = map[string]string{
@@ -27,9 +28,9 @@ var headers map[string]string = map[string]string{
 
 func NewClient(baseURL string) *Client {
 	return &Client{
-		http.Client{},
-		fmt.Sprintf("%v/api", baseURL),
-		"",
+		Client:  http.Client{},
+		baseURL: fmt.Sprintf("%v/api", baseURL),
+		sid:     "",
 	}
 }
 
@@ -46,6 +47,7 @@ func (p *Client) Login(password string) error {
 		return errors.New(resp.Session.Message)
 	}
 
+	p.password = password
 	p.sid = resp.Session.Sid
 	return nil
 }
@@ -125,6 +127,10 @@ func (p *Client) AddDnsRecord(domain, ip string) error {
 	if err != nil {
 		return err
 	}
+	if statusCode == 401 {
+		p.refreshAuth()
+		return p.AddDnsRecord(domain, ip)
+	}
 	if statusCode >= 400 {
 		var errorResponse ErrorResponse
 		json.Unmarshal([]byte(resp), &errorResponse)
@@ -169,6 +175,10 @@ func (p *Client) DeleteDnsRecord(domain string) error {
 	resp, statusCode, err := clients.Patch(&p.Client, p.baseURL+"/config", headers, string(payloadString))
 	if err != nil {
 		return err
+	}
+	if statusCode == 401 {
+		p.refreshAuth()
+		return p.DeleteDnsRecord(domain)
 	}
 	if statusCode >= 400 {
 		var errorResponse ErrorResponse
@@ -254,6 +264,10 @@ func (p *Client) AddCNameRecord(domain, target string) error {
 	if err != nil {
 		return err
 	}
+	if statusCode == 401 {
+		p.refreshAuth()
+		return p.AddCNameRecord(domain, target)
+	}
 	if statusCode >= 400 {
 		var errorResponse ErrorResponse
 		json.Unmarshal([]byte(resp), &errorResponse)
@@ -299,6 +313,10 @@ func (p *Client) DeleteCNameRecord(domain, target string) error {
 	if err != nil {
 		return err
 	}
+	if statusCode == 401 {
+		p.refreshAuth()
+		return p.DeleteCNameRecord(domain, target)
+	}
 	if statusCode >= 400 {
 		var errorResponse ErrorResponse
 		json.Unmarshal([]byte(resp), &errorResponse)
@@ -306,4 +324,9 @@ func (p *Client) DeleteCNameRecord(domain, target string) error {
 	}
 
 	return nil
+}
+
+func (p *Client) refreshAuth() {
+	log.Info("Refreshing Pi-Hole authentication")
+	p.Login(p.password)
 }
