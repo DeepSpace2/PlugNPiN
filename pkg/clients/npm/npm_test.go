@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -30,8 +31,7 @@ func TestLogin(t *testing.T) {
 			assert.Equal(t, "test-password", req.Secret)
 
 			w.WriteHeader(http.StatusOK)
-			// The type is called Token, so we send back a Token object
-			json.NewEncoder(w).Encode(Token{Token: "test-jwt-token"})
+			json.NewEncoder(w).Encode(LoginResponse{Token: "test-jwt-token", Expires: time.Now().Add(24 * time.Hour).Format(time.RFC3339Nano)})
 		})
 
 		client, server := setupTestServer(handler)
@@ -74,6 +74,8 @@ func TestAddProxyHost(t *testing.T) {
 
 		client, server := setupTestServer(handler)
 		client.token = testToken // Pre-authorize client
+		client.tokenExpireTime = time.Now().Add(24 * time.Hour)
+		client.headers["authorization"] = "Bearer " + testToken
 		defer server.Close()
 
 		hostToAdd := ProxyHost{
@@ -98,6 +100,8 @@ func TestAddProxyHost(t *testing.T) {
 
 		client, server := setupTestServer(handler)
 		client.token = testToken // Pre-authorize client
+		client.tokenExpireTime = time.Now().Add(24 * time.Hour)
+		client.headers["authorization"] = "Bearer " + testToken
 		defer server.Close()
 
 		// Try to add the same host that already exists.
@@ -139,6 +143,8 @@ func TestDeleteProxyHost(t *testing.T) {
 
 		client, server := setupTestServer(handler)
 		client.token = testToken // Pre-authorize client
+		client.tokenExpireTime = time.Now().Add(24 * time.Hour)
+		client.headers["authorization"] = "Bearer " + testToken
 		defer server.Close()
 
 		err := client.DeleteProxyHost("existing-host.com")
@@ -162,6 +168,7 @@ func TestDeleteProxyHost(t *testing.T) {
 
 		client, server := setupTestServer(handler)
 		client.token = testToken // Pre-authorize client
+		client.tokenExpireTime = time.Now().Add(24 * time.Hour)
 		defer server.Close()
 
 		err := client.DeleteProxyHost("non-existing-host.com")
