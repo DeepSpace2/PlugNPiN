@@ -85,13 +85,7 @@ func (n *Client) GetIP() string {
 }
 
 func (n *Client) getProxyHosts() (map[string]int, error) {
-	if n.hasTokenExpired() {
-		if err := n.refreshToken(); err != nil {
-			return nil, err
-		}
-	}
-
-	proxyHostsString, statusCode, err := clients.Get(&n.Client, n.baseURL+"/nginx/proxy-hosts", n.headers)
+	proxyHostsString, statusCode, err := n.makeRequest(http.MethodGet, n.baseURL+"/nginx/proxy-hosts", nil)
 	if err != nil || statusCode >= 400 {
 		return nil, err
 	}
@@ -114,14 +108,41 @@ func (n *Client) refreshToken() error {
 	return n.Login()
 }
 
-func (n *Client) getCertificates() (Certificates, error) {
+func (n *Client) makeRequest(method, url string, payload *string) (string, int, error) {
 	if n.hasTokenExpired() {
 		if err := n.refreshToken(); err != nil {
-			return nil, err
+			return "", 0, fmt.Errorf("pre-emptive token refresh failed: %v", err)
 		}
 	}
 
-	resp, statusCode, err := clients.Get(&n.Client, n.baseURL+"/nginx/certificates", n.headers)
+	doRequest := func() (string, int, error) {
+		switch method {
+		case http.MethodGet:
+			return clients.Get(&n.Client, url, n.headers)
+		case http.MethodPost:
+			return clients.Post(&n.Client, url, n.headers, payload)
+		case http.MethodDelete:
+			return clients.Delete(&n.Client, url, n.headers)
+		default:
+			return "", 0, fmt.Errorf("unsupported http method: %s", method)
+		}
+	}
+
+	resp, statusCode, err := doRequest()
+
+	if statusCode == http.StatusUnauthorized {
+		log.Info("Received 401 Unauthorized, attempting reactive token refresh and retry.")
+		if refreshErr := n.refreshToken(); refreshErr != nil {
+			return resp, statusCode, fmt.Errorf("request failed with 401, and subsequent token refresh also failed: %v", refreshErr)
+		}
+		resp, statusCode, err = doRequest()
+	}
+
+	return resp, statusCode, err
+}
+
+func (n *Client) getCertificates() (Certificates, error) {
+	resp, statusCode, err := n.makeRequest(http.MethodGet, n.baseURL+"/nginx/certificates", nil)
 	if err != nil || statusCode >= 400 {
 		return nil, err
 	}
@@ -163,7 +184,7 @@ func (n *Client) AddProxyHost(host ProxyHost) error {
 	}
 
 	payloadString := string(payloadBytes)
-	resp, statusCode, err := clients.Post(&n.Client, n.baseURL+"/nginx/proxy-hosts", n.headers, &payloadString)
+	resp, statusCode, err := n.makeRequest(http.MethodPost, n.baseURL+"/nginx/proxy-hosts", &payloadString)
 	if err != nil {
 		return err
 	}
@@ -187,7 +208,7 @@ func (n *Client) DeleteProxyHost(domain string) error {
 	}
 
 	url := fmt.Sprintf("%v/nginx/proxy-hosts/%v", n.baseURL, hostID)
-	resp, statusCode, err := clients.Delete(&n.Client, url, n.headers)
+	resp, statusCode, err := n.makeRequest(http.MethodDelete, url, nil)
 	if err != nil {
 		return err
 	}
