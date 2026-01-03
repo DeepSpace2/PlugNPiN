@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/deepspace2/plugnpin/pkg/clients"
@@ -22,6 +24,7 @@ type Client struct {
 	secret          string
 	token           string
 	tokenExpireTime time.Time
+	mu              sync.Mutex
 }
 
 func NewClient(baseURL, identity, secret string) *Client {
@@ -109,6 +112,9 @@ func (n *Client) refreshToken() error {
 }
 
 func (n *Client) makeRequest(method, url string, payload *string) (string, int, error) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	if n.hasTokenExpired() {
 		if err := n.refreshToken(); err != nil {
 			return "", 0, fmt.Errorf("pre-emptive token refresh failed: %v", err)
@@ -130,10 +136,14 @@ func (n *Client) makeRequest(method, url string, payload *string) (string, int, 
 
 	resp, statusCode, err := doRequest()
 
-	if statusCode == http.StatusUnauthorized {
-		log.Info("Received 401 Unauthorized, attempting reactive token refresh and retry.")
+	var errorResponse ErrorResponse
+	_ = json.Unmarshal([]byte(resp), &errorResponse)
+	isTokenExpiredError := strings.Contains(errorResponse.Error.Message, "Token has expired")
+
+	if statusCode == http.StatusUnauthorized || (statusCode >= 400 && isTokenExpiredError) {
+		log.Info("Received auth-related error, attempting reactive token refresh and retry.")
 		if refreshErr := n.refreshToken(); refreshErr != nil {
-			return resp, statusCode, fmt.Errorf("request failed with 401, and subsequent token refresh also failed: %v", refreshErr)
+			return resp, statusCode, fmt.Errorf("request failed with auth error, and subsequent token refresh also failed: %v", refreshErr)
 		}
 		resp, statusCode, err = doRequest()
 	}
