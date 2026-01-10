@@ -8,6 +8,7 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/events"
 
+	"github.com/deepspace2/plugnpin/pkg/clients/adguardhome"
 	"github.com/deepspace2/plugnpin/pkg/clients/docker"
 	"github.com/deepspace2/plugnpin/pkg/clients/npm"
 	"github.com/deepspace2/plugnpin/pkg/clients/pihole"
@@ -18,18 +19,20 @@ import (
 var log = logging.GetLogger()
 
 type Processor struct {
-	dockerClient *docker.Client
-	piholeClient *pihole.Client
-	npmClient    *npm.Client
-	dryRun       bool
+	dockerClient      *docker.Client
+	adguardHomeClient *adguardhome.Client
+	piholeClient      *pihole.Client
+	npmClient         *npm.Client
+	dryRun            bool
 }
 
-func New(dockerClient *docker.Client, piholeClient *pihole.Client, npmClient *npm.Client, dryRun bool) *Processor {
+func New(dockerClient *docker.Client, adguardHomeClient *adguardhome.Client, piholeClient *pihole.Client, npmClient *npm.Client, dryRun bool) *Processor {
 	return &Processor{
-		dockerClient: dockerClient,
-		piholeClient: piholeClient,
-		npmClient:    npmClient,
-		dryRun:       dryRun,
+		dockerClient:      dockerClient,
+		adguardHomeClient: adguardHomeClient,
+		piholeClient:      piholeClient,
+		npmClient:         npmClient,
+		dryRun:            dryRun,
 	}
 }
 
@@ -84,7 +87,7 @@ func (p *Processor) RunOnce() {
 func (p *Processor) preprocessContainer(container container.Summary) {
 	parsedContainerName := docker.GetParsedContainerName(container)
 
-	ip, url, port, npmProxyHostOptions, piholeOptions, err := docker.GetValuesFromLabels(container.Labels)
+	ip, url, port, opts, err := docker.GetValuesFromLabels(container.Labels)
 	if err != nil {
 		switch err.(type) {
 		case *errors.NonExistingLabelsError:
@@ -94,7 +97,7 @@ func (p *Processor) preprocessContainer(container container.Summary) {
 		}
 		return
 	}
-	p.processContainer(docker.ContainerEvent.Start, parsedContainerName, ip, url, port, *piholeOptions, *npmProxyHostOptions)
+	p.processContainer(docker.ContainerEvent.Start, parsedContainerName, ip, url, port, opts)
 }
 
 func (p *Processor) handleDockerEvent(event events.Message) {
@@ -104,7 +107,7 @@ func (p *Processor) handleDockerEvent(event events.Message) {
 		return
 	}
 
-	ip, url, port, npmProxyHostOptions, piholeOptions, err := docker.GetValuesFromLabels(event.Actor.Attributes)
+	ip, url, port, opts, err := docker.GetValuesFromLabels(event.Actor.Attributes)
 	if err != nil {
 		switch err.(type) {
 		case *errors.NonExistingLabelsError:
@@ -116,7 +119,31 @@ func (p *Processor) handleDockerEvent(event events.Message) {
 		return
 	}
 	containerEvent, _ := docker.ContainerEvent.ParseString(string(event.Action))
-	p.processContainer(containerEvent, containerName, ip, url, port, *piholeOptions, *npmProxyHostOptions)
+	p.processContainer(containerEvent, containerName, ip, url, port, opts)
+}
+
+func (p *Processor) handleAdguardHome(containerEvent docker.EventType, containerName, url, ip string, adguardHomeOptions adguardhome.AdguardHomeOptions) {
+	if p.adguardHomeClient != nil {
+		if adguardHomeOptions.TargetDomain != "" {
+			// quick "workaround" for the fact that adguard unifies "local DNS records" and "CNAME records"
+			ip = adguardHomeOptions.TargetDomain
+		}
+
+		switch containerEvent {
+		case docker.ContainerEvent.Start:
+			log.Info("Adding a DNS rewrite to AdGuard Home", "container", containerName, "domain", url, "answer", ip)
+			err := p.adguardHomeClient.AddDnsRewrite(url, ip)
+			if err != nil {
+				log.Error("Failed to add a DNS rewrite to AdGuard Home", "container", containerName, "domain", url, "answer", ip, "error", err)
+			}
+		case docker.ContainerEvent.Die:
+			log.Info("Deleting DNS rewrite from AdGuard Home", "container", containerName, "domain", url)
+			err := p.adguardHomeClient.DeleteDnsRewrite(url, ip)
+			if err != nil {
+				log.Error("Failed to delete DNS rewrite from AdGuard Home", "container", containerName, "domain", url, "error", err)
+			}
+		}
+	}
 }
 
 func (p *Processor) handlePiHole(containerEvent docker.EventType, containerName, url, ip string, piholeOptions pihole.PiHoleOptions) {
@@ -197,7 +224,7 @@ func (p *Processor) handleNpm(containerEvent docker.EventType, containerName, ur
 	}
 }
 
-func (p *Processor) processContainer(containerEvent docker.EventType, containerName, ip, url string, port int, piholeOptions pihole.PiHoleOptions, npmProxyHostOptions npm.NpmProxyHostOptions) {
+func (p *Processor) processContainer(containerEvent docker.EventType, containerName, ip, url string, port int, opts *docker.ClientOptions) {
 	msg := "Handling container"
 
 	if p.dryRun {
@@ -210,7 +237,14 @@ func (p *Processor) processContainer(containerEvent docker.EventType, containerN
 
 	if p.npmClient != nil {
 		npmHost := p.npmClient.GetIP()
-		p.handlePiHole(containerEvent, containerName, url, npmHost, piholeOptions)
-		p.handleNpm(containerEvent, containerName, url, ip, port, npmProxyHostOptions)
+		if opts.AdguardHome != nil {
+			p.handleAdguardHome(containerEvent, containerName, url, npmHost, *opts.AdguardHome)
+		}
+		if opts.Pihole != nil {
+			p.handlePiHole(containerEvent, containerName, url, npmHost, *opts.Pihole)
+		}
+		if opts.NPM != nil {
+			p.handleNpm(containerEvent, containerName, url, ip, port, *opts.NPM)
+		}
 	}
 }

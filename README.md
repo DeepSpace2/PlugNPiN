@@ -5,20 +5,21 @@
 
 # 🔌 PlugNPiN
 
-**Plug and play your docker containers into Pi-Hole & Nginx Proxy Manager**
+**Plug and play your docker containers into Pi-Hole/AdGuard Home & Nginx Proxy Manager**
 
 Automatically detect running Docker containers based on labels, add them
-as local DNS/CNAME records in **Pi-Hole** and create matching proxy hosts in
+as local DNS/CNAME records in **Pi-Hole** (or DNS Rewrites in **AdGuard Home**) and create matching proxy hosts in
 **Nginx Proxy Manager**.
 
 ## Key Features
 
 - Automatic Docker container detection.
-- Local DNS/CNAME record creation in Pi-hole.
+- Local DNS/CNAME record creation/deletion in Pi-hole.
+- DNS Rewrites creation/deletion in AdGuard Home.
 - Nginx Proxy Manager host creation.
 - Support for Docker socket proxy.
 
-**Due to popular request, Pi-Hole's functionality can be disabled.**
+**Pi-Hole's and AdGuard Home's functionality can be toggled individually. By default Pi-Hole is enabled and AdGuard Home is disabled.**
 
 **[See the documentation site for full setup and configuration.](https://deepspace2.github.io/PlugNPiN)**
 
@@ -37,7 +38,7 @@ The application operates in two complementary modes to keep your services synchr
 
 When a container is processed in either mode, PlugNPiN will:
 
-1. Create a DNS record pointing the specified `url` to the `ip` address on **Pi-Hole** (or a CNAME record pointing to a configurable target domain).
+1. Create a DNS record pointing the specified `url` to the `ip` address on **Pi-Hole/AdGuard Home** (or a CNAME record pointing to a configurable target domain).
 2. Create a proxy host to route traffic from the `url` to the container's `ip` and `port` on **Nginx Proxy Manager**.
 
 ## Usage
