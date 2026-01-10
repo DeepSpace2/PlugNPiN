@@ -1,5 +1,10 @@
 package npm
 
+type LoginResponse struct {
+	Expires string `json:"expires"`
+	Token   string `json:"token"`
+}
+
 type LoginRequest struct {
 	Identity string `json:"identity"`
 	Secret   string `json:"secret"`
@@ -10,10 +15,6 @@ type ErrorResponse struct {
 		Code    int    `json:"code"`
 		Message string `json:"message"`
 	} `json:"error"`
-}
-
-type Token struct {
-	Token string `json:"token"`
 }
 
 type ProxyHostReply struct {
