@@ -87,7 +87,7 @@ func (n *Client) GetIP() string {
 	return url.Hostname()
 }
 
-func (n *Client) getProxyHosts() (map[string]int, error) {
+func (n *Client) GetProxyHosts() (map[string]int, error) {
 	proxyHostsString, statusCode, err := n.makeRequest(http.MethodGet, n.baseURL+"/nginx/proxy-hosts", nil)
 	if err != nil || statusCode >= 400 {
 		return nil, err
@@ -178,7 +178,7 @@ func (n *Client) GetCertificateIDByName(name string) *int {
 }
 
 func (n *Client) AddProxyHost(host ProxyHost) error {
-	existingProxyHosts, err := n.getProxyHosts()
+	existingProxyHosts, err := n.GetProxyHosts()
 	if err != nil {
 		return err
 	}
@@ -208,7 +208,7 @@ func (n *Client) AddProxyHost(host ProxyHost) error {
 }
 
 func (n *Client) DeleteProxyHost(domain string) error {
-	existingProxyHosts, err := n.getProxyHosts()
+	existingProxyHosts, err := n.GetProxyHosts()
 	if err != nil {
 		return err
 	}

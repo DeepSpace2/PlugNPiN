@@ -1,3 +1,5 @@
 .env
-
 build
+e2e_tests/.env.test
+e2e_tests/adguardhome-data/*
+e2e_tests/npm-data/*

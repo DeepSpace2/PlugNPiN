@@ -27,8 +27,8 @@ type ClientOptions struct {
 var log = logging.GetLogger()
 
 const (
-	ipLabel  = "plugNPiN.ip"
-	urlLabel = "plugNPiN.url"
+	IpLabel  = "plugNPiN.ip"
+	UrlLabel = "plugNPiN.url"
 
 	adguardHomeOptionsTargetDomainLabel = "plugNPiN.adguardHomeOptions.targetDomain"
 	npmOptionsAdvancedConfigLabel       = "plugNPiN.npmOptions.advancedConfig"
@@ -44,7 +44,7 @@ const (
 	piholeOptionsTargetDomainLabel      = "plugNPiN.piholeOptions.targetDomain"
 )
 
-var labels []string = []string{ipLabel, urlLabel}
+var labels []string = []string{IpLabel, UrlLabel}
 
 type Client struct {
 	*dockerSdk.Client
@@ -76,24 +76,24 @@ func GetParsedContainerName(container container.Summary) string {
 }
 
 func GetValuesFromLabels(labels map[string]string) (ip, url string, port int, opts *ClientOptions, err error) {
-	ip, ok := labels[ipLabel]
+	ip, ok := labels[IpLabel]
 	if !ok {
-		return "", "", 0, nil, &errors.NonExistingLabelsError{Msg: fmt.Sprintf("missing %s label", ipLabel)}
+		return "", "", 0, nil, &errors.NonExistingLabelsError{Msg: fmt.Sprintf("missing %s label", IpLabel)}
 	}
-	url, ok = labels[urlLabel]
+	url, ok = labels[UrlLabel]
 	if !ok {
-		return "", "", 0, nil, &errors.NonExistingLabelsError{Msg: fmt.Sprintf("missing %s label", urlLabel)}
+		return "", "", 0, nil, &errors.NonExistingLabelsError{Msg: fmt.Sprintf("missing %s label", UrlLabel)}
 	}
 
 	splitIPAndPort := strings.Split(ip, ":")
 	if len(splitIPAndPort) == 1 {
-		return "", "", 0, nil, &errors.MalformedIPLabelError{Msg: fmt.Sprintf("missing ':' in value of '%v' label", ipLabel)}
+		return "", "", 0, nil, &errors.MalformedIPLabelError{Msg: fmt.Sprintf("missing ':' in value of '%v' label", IpLabel)}
 	}
 	ip = splitIPAndPort[0]
 	port, err = strconv.Atoi(splitIPAndPort[1])
 	if err != nil {
 		return "", "", 0, nil, &errors.MalformedIPLabelError{
-			Msg: fmt.Sprintf("value after ':' in value of '%v' label must be an integer, got '%v'", ipLabel, splitIPAndPort[1]),
+			Msg: fmt.Sprintf("value after ':' in value of '%v' label must be an integer, got '%v'", IpLabel, splitIPAndPort[1]),
 		}
 	}
 

@@ -1,3 +1,5 @@
+//go:build unit
+
 package docker
 
 import (
@@ -60,25 +62,25 @@ func TestGetParsedContainerName(t *testing.T) {
 
 func TestGetValuesFromContainerLabels(t *testing.T) {
 	testCases := []struct {
-		name                                  string
-		container                             container.Summary
-		expectedIP                            string
-		expectedURL                           string
-		expectedPort                          int
-		expectedErr                           error
+		name                                   string
+		container                              container.Summary
+		expectedIP                             string
+		expectedURL                            string
+		expectedPort                           int
+		expectedErr                            error
 		expectedAdguardHomeOptionsTargetDomain string
-		expectedNpmOptionsBlockExploits       bool
-		expectedNpmOptionsCachingEnabled      bool
-		expectedNpmOptionsScheme              string
-		expectedNpmOptionsWebsocketsSupport   bool
-		expectedPiholeOptionsTargetDomain     string
+		expectedNpmOptionsBlockExploits        bool
+		expectedNpmOptionsCachingEnabled       bool
+		expectedNpmOptionsScheme               string
+		expectedNpmOptionsWebsocketsSupport    bool
+		expectedPiholeOptionsTargetDomain      string
 	}{
 		{
 			name: "Happy path",
 			container: container.Summary{
 				Labels: map[string]string{
-					ipLabel:  "192.168.1.10:8080",
-					urlLabel: "my-service.example.com",
+					IpLabel:  "192.168.1.10:8080",
+					UrlLabel: "my-service.example.com",
 				},
 			},
 			expectedIP:                          "192.168.1.10",
@@ -94,34 +96,34 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 			name: "Malformed IP label - missing port",
 			container: container.Summary{
 				Labels: map[string]string{
-					ipLabel:  "192.168.1.10",
-					urlLabel: "my-service.example.com",
+					IpLabel:  "192.168.1.10",
+					UrlLabel: "my-service.example.com",
 				},
 			},
 			expectedIP:   "",
 			expectedURL:  "",
 			expectedPort: 0,
-			expectedErr:  &errors.MalformedIPLabelError{Msg: fmt.Sprintf("missing ':' in value of '%v' label", ipLabel)},
+			expectedErr:  &errors.MalformedIPLabelError{Msg: fmt.Sprintf("missing ':' in value of '%v' label", IpLabel)},
 		},
 		{
 			name: "Malformed IP label - non-integer port",
 			container: container.Summary{
 				Labels: map[string]string{
-					ipLabel:  "192.168.1.10:http",
-					urlLabel: "my-service.example.com",
+					IpLabel:  "192.168.1.10:http",
+					UrlLabel: "my-service.example.com",
 				},
 			},
 			expectedIP:   "",
 			expectedURL:  "",
 			expectedPort: 0,
-			expectedErr:  &errors.MalformedIPLabelError{Msg: fmt.Sprintf("value after ':' in value of '%v' label must be an integer, got 'http'", ipLabel)},
+			expectedErr:  &errors.MalformedIPLabelError{Msg: fmt.Sprintf("value after ':' in value of '%v' label must be an integer, got 'http'", IpLabel)},
 		},
 		{
 			name: "NPM options",
 			container: container.Summary{
 				Labels: map[string]string{
-					ipLabel:                          "192.168.1.10:8080",
-					urlLabel:                         "my-service.example.com",
+					IpLabel:                          "192.168.1.10:8080",
+					UrlLabel:                         "my-service.example.com",
 					npmOptionsBlockExploitsLabel:     "",
 					npmOptionsCachingEnabledLabel:    "true",
 					npmOptionsSchemeLabel:            "https",
@@ -141,8 +143,8 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 			name: "NPM options - true values",
 			container: container.Summary{
 				Labels: map[string]string{
-					ipLabel:                          "192.168.1.10:8080",
-					urlLabel:                         "my-service.example.com",
+					IpLabel:                          "192.168.1.10:8080",
+					UrlLabel:                         "my-service.example.com",
 					npmOptionsBlockExploitsLabel:     "true",
 					npmOptionsCachingEnabledLabel:    "1",
 					npmOptionsWebsocketsSupportLabel: "T",
@@ -161,8 +163,8 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 			name: "NPM options - false values",
 			container: container.Summary{
 				Labels: map[string]string{
-					ipLabel:                          "192.168.1.10:8080",
-					urlLabel:                         "my-service.example.com",
+					IpLabel:                          "192.168.1.10:8080",
+					UrlLabel:                         "my-service.example.com",
 					npmOptionsBlockExploitsLabel:     "false",
 					npmOptionsCachingEnabledLabel:    "0",
 					npmOptionsWebsocketsSupportLabel: "F",
@@ -181,8 +183,8 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 			name: "NPM options - invalid boolean values",
 			container: container.Summary{
 				Labels: map[string]string{
-					ipLabel:                          "192.168.1.10:8080",
-					urlLabel:                         "my-service.example.com",
+					IpLabel:                          "192.168.1.10:8080",
+					UrlLabel:                         "my-service.example.com",
 					npmOptionsBlockExploitsLabel:     "yes",
 					npmOptionsCachingEnabledLabel:    "no",
 					npmOptionsWebsocketsSupportLabel: "2",
@@ -201,8 +203,8 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 			name: "NPM options - invalid scheme",
 			container: container.Summary{
 				Labels: map[string]string{
-					ipLabel:               "192.168.1.10:8080",
-					urlLabel:              "my-service.example.com",
+					IpLabel:               "192.168.1.10:8080",
+					UrlLabel:              "my-service.example.com",
 					npmOptionsSchemeLabel: "invalid",
 				},
 			},
@@ -215,8 +217,8 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 			name: "NPM options - case-insensitive scheme",
 			container: container.Summary{
 				Labels: map[string]string{
-					ipLabel:               "192.168.1.10:8080",
-					urlLabel:              "my-service.example.com",
+					IpLabel:               "192.168.1.10:8080",
+					UrlLabel:              "my-service.example.com",
 					npmOptionsSchemeLabel: "HTTPS",
 				},
 			},
@@ -233,8 +235,8 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 			name: "Pi-Hole options - no target domain",
 			container: container.Summary{
 				Labels: map[string]string{
-					ipLabel:  "192.168.1.10:8080",
-					urlLabel: "my-service.example.com",
+					IpLabel:  "192.168.1.10:8080",
+					UrlLabel: "my-service.example.com",
 				},
 			},
 			expectedIP:                        "192.168.1.10",
@@ -249,8 +251,8 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 			name: "Pi-Hole options - target domain",
 			container: container.Summary{
 				Labels: map[string]string{
-					ipLabel:                        "192.168.1.10:8080",
-					urlLabel:                       "my-service.example.com",
+					IpLabel:                        "192.168.1.10:8080",
+					UrlLabel:                       "my-service.example.com",
 					piholeOptionsTargetDomainLabel: "custom.domain",
 				},
 			},
@@ -266,8 +268,8 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 			name: "AdguardHome options - target domain",
 			container: container.Summary{
 				Labels: map[string]string{
-					ipLabel:                             "192.168.1.10:8080",
-					urlLabel:                            "my-service.example.com",
+					IpLabel:                             "192.168.1.10:8080",
+					UrlLabel:                            "my-service.example.com",
 					adguardHomeOptionsTargetDomainLabel: "custom.domain.adguard",
 				},
 			},

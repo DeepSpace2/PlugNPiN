@@ -67,7 +67,7 @@ func dnsRecordToRaw(domain DomainName, ip IP) string {
 	return fmt.Sprintf("%v %v", ip, domain)
 }
 
-func (p *Client) getDnsRecords() (DnsRecords, error) {
+func (p *Client) GetDnsRecords() (DnsRecords, error) {
 	if p.sid == "" {
 		log.Error("Missing Pi-Hole session ID")
 		os.Exit(1)
@@ -92,7 +92,7 @@ func (p *Client) getDnsRecords() (DnsRecords, error) {
 }
 
 func (p *Client) AddDnsRecord(domain, ip string) error {
-	existingRecords, err := p.getDnsRecords()
+	existingRecords, err := p.GetDnsRecords()
 	if err != nil {
 		return err
 	}
@@ -141,7 +141,7 @@ func (p *Client) AddDnsRecord(domain, ip string) error {
 }
 
 func (p *Client) DeleteDnsRecord(domain string) error {
-	existingRecords, err := p.getDnsRecords()
+	existingRecords, err := p.GetDnsRecords()
 	if err != nil {
 		return err
 	}

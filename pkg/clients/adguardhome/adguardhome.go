@@ -33,7 +33,7 @@ func NewClient(baseURL, username, password string) *Client {
 	}
 }
 
-func (ad *Client) getDnsRewrites() (DnsRewrites, error) {
+func (ad *Client) GetDnsRewrites() (DnsRewrites, error) {
 	dnsRewritesResponseString, _, err := clients.Get(&ad.Client, ad.baseURL+"/rewrite/list", headers)
 	if err != nil {
 		return nil, err
@@ -49,7 +49,7 @@ func (ad *Client) getDnsRewrites() (DnsRewrites, error) {
 }
 
 func (ad *Client) AddDnsRewrite(domain, ip string) error {
-	existingRecords, err := ad.getDnsRewrites()
+	existingRecords, err := ad.GetDnsRewrites()
 	if err != nil {
 		return err
 	}
