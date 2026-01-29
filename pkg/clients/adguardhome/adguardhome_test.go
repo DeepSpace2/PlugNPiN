@@ -1,3 +1,5 @@
+//go:build unit
+
 package adguardhome
 
 import (
@@ -98,7 +100,7 @@ func TestDeleteDnsRewrite(t *testing.T) {
 		assert.NoError(t, err)
 		assert.True(t, deleteCalled, "Delete API endpoint was not called")
 
-		existingDnsRewrites, err := client.getDnsRewrites()
+		existingDnsRewrites, err := client.GetDnsRewrites()
 		assert.NoError(t, err)
 		assert.Equal(t, 0, len(existingDnsRewrites))
 	})

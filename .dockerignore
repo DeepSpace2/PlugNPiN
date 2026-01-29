@@ -1,6 +1,7 @@
-.env
 
+.env
 build
 docs
+e2e_tests
 mkdocs.yml
 venv
