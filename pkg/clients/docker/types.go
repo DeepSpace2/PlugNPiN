@@ -1,9 +1,17 @@
 package docker
 
+import dockerSdk "github.com/docker/go-sdk/client"
+
 const (
 	start = "start"
 	die   = "die"
 )
+
+type Client struct {
+	*dockerSdk.Client
+	DisplayHost string
+	Host        string
+}
 
 type EventType string
 

@@ -4,14 +4,14 @@ import (
 	flag "github.com/spf13/pflag"
 )
 
-type f struct {
+type Flags struct {
 	DryRun bool
 }
 
-var flags f = f{}
+var flags = Flags{}
 
-func ParseFlags() f {
-	flag.BoolVarP(&flags.DryRun, "dry-run", "d", false, "Simulates the process of adding DNS records and proxy hosts without making any actual changes to Pi-Hole or Nginx Proxy Manager.")
+func ParseFlags() Flags {
+	flag.BoolVarP(&flags.DryRun, "dry-run", "d", false, "Simulates the process of adding DNS records and proxy hosts without applying changes to Pi-Hole, AdGuard Home or Nginx Proxy Manager.")
 	flag.Parse()
 	return flags
 }

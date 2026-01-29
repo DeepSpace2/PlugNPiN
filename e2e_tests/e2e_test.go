@@ -128,7 +128,7 @@ func startRequiredContainers(t *testing.T, ctx context.Context, dockerCli *docke
 }
 
 func setClients(t *testing.T, containers []Container) (*docker.Client, *pihole.Client, *npm.Client, *adguardhome.Client) {
-	dockerClient, err := docker.NewClient()
+	dockerClient, err := docker.NewClient("")
 	if err != nil {
 		t.Fatalf("Failed to create docker client: %v", err)
 	}
@@ -308,7 +308,7 @@ func TestE2E(t *testing.T) {
 	time.Sleep(2 * time.Second)
 
 	proc := processor.New(
-		dockerClient,
+		map[string]*docker.Client{dockerClient.Host: dockerClient},
 		adguardHomeClient,
 		piholeClient,
 		npmClient,

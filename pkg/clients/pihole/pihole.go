@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/deepspace2/plugnpin/pkg/clients"
+	"github.com/deepspace2/plugnpin/pkg/clients/common"
 	"github.com/deepspace2/plugnpin/pkg/logging"
 )
 
@@ -36,7 +36,7 @@ func NewClient(baseURL string) *Client {
 
 func (p *Client) Login(password string) error {
 	loginPayload := fmt.Sprintf(`{"password": "%v"}`, password)
-	loginResponseString, statusCode, err := clients.Post(&p.Client, p.baseURL+"/auth", headers, &loginPayload)
+	loginResponseString, statusCode, err := common.Post(&p.Client, p.baseURL+"/auth", headers, &loginPayload)
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,7 @@ func (p *Client) GetDnsRecords() (DnsRecords, error) {
 		os.Exit(1)
 	}
 	headers["X-FTL-SID"] = p.sid
-	configResponseString, _, err := clients.Get(&p.Client, p.baseURL+"/config", headers)
+	configResponseString, _, err := common.Get(&p.Client, p.baseURL+"/config", headers)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +123,7 @@ func (p *Client) AddDnsRecord(domain, ip string) error {
 		os.Exit(1)
 	}
 	headers["X-FTL-SID"] = p.sid
-	resp, statusCode, err := clients.Patch(&p.Client, p.baseURL+"/config", headers, string(payloadString))
+	resp, statusCode, err := common.Patch(&p.Client, p.baseURL+"/config", headers, string(payloadString))
 	if err != nil {
 		return err
 	}
@@ -172,7 +172,7 @@ func (p *Client) DeleteDnsRecord(domain string) error {
 		os.Exit(1)
 	}
 	headers["X-FTL-SID"] = p.sid
-	resp, statusCode, err := clients.Patch(&p.Client, p.baseURL+"/config", headers, string(payloadString))
+	resp, statusCode, err := common.Patch(&p.Client, p.baseURL+"/config", headers, string(payloadString))
 	if err != nil {
 		return err
 	}
@@ -210,7 +210,7 @@ func (p *Client) getCNameRecords() (CNameRecords, error) {
 		os.Exit(1)
 	}
 	headers["X-FTL-SID"] = p.sid
-	configResponseString, _, err := clients.Get(&p.Client, p.baseURL+"/config", headers)
+	configResponseString, _, err := common.Get(&p.Client, p.baseURL+"/config", headers)
 	if err != nil {
 		return nil, err
 	}
@@ -260,7 +260,7 @@ func (p *Client) AddCNameRecord(domain, target string) error {
 		os.Exit(1)
 	}
 	headers["X-FTL-SID"] = p.sid
-	resp, statusCode, err := clients.Patch(&p.Client, p.baseURL+"/config", headers, string(payloadString))
+	resp, statusCode, err := common.Patch(&p.Client, p.baseURL+"/config", headers, string(payloadString))
 	if err != nil {
 		return err
 	}
@@ -309,7 +309,7 @@ func (p *Client) DeleteCNameRecord(domain, target string) error {
 		os.Exit(1)
 	}
 	headers["X-FTL-SID"] = p.sid
-	resp, statusCode, err := clients.Patch(&p.Client, p.baseURL+"/config", headers, string(payloadString))
+	resp, statusCode, err := common.Patch(&p.Client, p.baseURL+"/config", headers, string(payloadString))
 	if err != nil {
 		return err
 	}

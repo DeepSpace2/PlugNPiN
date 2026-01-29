@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/deepspace2/plugnpin/pkg/clients"
+	"github.com/deepspace2/plugnpin/pkg/clients/common"
 	"github.com/deepspace2/plugnpin/pkg/logging"
 )
 
@@ -34,7 +34,7 @@ func NewClient(baseURL, username, password string) *Client {
 }
 
 func (ad *Client) GetDnsRewrites() (DnsRewrites, error) {
-	dnsRewritesResponseString, _, err := clients.Get(&ad.Client, ad.baseURL+"/rewrite/list", headers)
+	dnsRewritesResponseString, _, err := common.Get(&ad.Client, ad.baseURL+"/rewrite/list", headers)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func (ad *Client) AddDnsRewrite(domain, ip string) error {
 		return err
 	}
 	payloadString := string(payload)
-	_, statusCode, err := clients.Post(&ad.Client, ad.baseURL+"/rewrite/add", headers, &payloadString)
+	_, statusCode, err := common.Post(&ad.Client, ad.baseURL+"/rewrite/add", headers, &payloadString)
 	if err != nil {
 		return err
 	}
@@ -83,7 +83,7 @@ func (ad *Client) DeleteDnsRewrite(domain, ip string) error {
 		return err
 	}
 	payloadString := string(payload)
-	_, statusCode, err := clients.Post(&ad.Client, ad.baseURL+"/rewrite/delete", headers, &payloadString)
+	_, statusCode, err := common.Post(&ad.Client, ad.baseURL+"/rewrite/delete", headers, &payloadString)
 	if err != nil {
 		return err
 	}

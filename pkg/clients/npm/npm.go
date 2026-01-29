@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/deepspace2/plugnpin/pkg/clients"
+	"github.com/deepspace2/plugnpin/pkg/clients/common"
 	"github.com/deepspace2/plugnpin/pkg/logging"
 )
 
@@ -58,7 +58,7 @@ func (n *Client) Login() error {
 		return err
 	}
 	payloadString := string(payloadBytes)
-	loginResponseString, statusCode, err := clients.Post(&n.Client, n.baseURL+"/tokens", n.headers, &payloadString)
+	loginResponseString, statusCode, err := common.Post(&n.Client, n.baseURL+"/tokens", n.headers, &payloadString)
 	if err != nil {
 		return err
 	}
@@ -124,11 +124,11 @@ func (n *Client) makeRequest(method, url string, payload *string) (string, int, 
 	doRequest := func() (string, int, error) {
 		switch method {
 		case http.MethodGet:
-			return clients.Get(&n.Client, url, n.headers)
+			return common.Get(&n.Client, url, n.headers)
 		case http.MethodPost:
-			return clients.Post(&n.Client, url, n.headers, payload)
+			return common.Post(&n.Client, url, n.headers, payload)
 		case http.MethodDelete:
-			return clients.Delete(&n.Client, url, n.headers)
+			return common.Delete(&n.Client, url, n.headers)
 		default:
 			return "", 0, fmt.Errorf("unsupported http method: %s", method)
 		}
