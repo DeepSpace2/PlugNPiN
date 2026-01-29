@@ -30,6 +30,7 @@ type Config struct {
 	PiholePassword string `env:"PIHOLE_PASSWORD"`
 
 	DockerHost  string        `env:"DOCKER_HOST"`
+	DockerHosts []string      `env:"DOCKER_HOSTS"`
 	RunInterval time.Duration `env:"RUN_INTERVAL" envDefault:"1h"`
 }
 

@@ -71,6 +71,7 @@ See [Per Container Configuration ➔ Pi-Hole](#piholeTargetDomainLabel).
 | <div id="adguardHomeDisabledEnvVar"><a name="adguardHomeDisabledEnvVar"></a>`ADGUARD_HOME_DISABLED`</div> | Set to `false` to enable AdGuard Home functionality | `true` |
 | `DEBUG` | Set to `true` to enable DEBUG level logs | `false` |
 | `DOCKER_HOST` | The URL of a docker socket proxy. If set, you don't need to mount the docker socket as a volume. Querying containers must be allowed (typically done by setting the `CONTAINERS` environment variable to `1`). | *None* |
+| `DOCKER_HOSTS` | Comma-separated list of multiple docker hosts to monitor, with an empty string meaning the default local host.<br>For example `DOCKER_HOSTS=,tcp://192.168.0.101:2375` | `""` |
 | <div id="piHoleDisabledEnvVar"><a name="piholeDisabledEnvVar"></a>`PIHOLE_DISABLED`</div> | Set to `true` to disable Pi-Hole functionality | `false` |
 | `RUN_INTERVAL` | The interval at which to scan for new containers, in Go's [`time.ParseDuration`](<https://go.dev/pkg/time/#ParseDuration>){: target="_blank" } format. Set to `0` to run once and exit. | `1h` |
 | `TZ` | Customise the timezone. | *None* |
@@ -79,7 +80,7 @@ See [Per Container Configuration ➔ Pi-Hole](#piholeTargetDomainLabel).
 
 | Flag {: style="width:35%" } | Description |
 |---|---|
-| `--dry-run`, `-d` | Simulates the process of adding DNS/CNAME records and proxy hosts without making any actual changes to Pi-Hole or Nginx Proxy Manager. |
+| `--dry-run`, `-d` | Simulates the process of adding DNS/CNAME records and proxy hosts without applying changes to Pi-Hole, AdGuard Home or Nginx Proxy Manager. |
 
 ### Per Container Configuration
 
@@ -150,7 +151,7 @@ services:
     restart: unless-stopped
 ```
 
-#### Not Recommended: Mounting the Docker Socket
+#### Not Recommended: Directly mounting the Docker Socket
 
 ```yaml
 services:
@@ -164,7 +165,7 @@ services:
       - PIHOLE_HOST=...
       - PIHOLE_PASSWORD=...
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     restart: unless-stopped
 ```
 
