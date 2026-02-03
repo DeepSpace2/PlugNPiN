@@ -13,11 +13,11 @@ as local DNS/CNAME records in **Pi-Hole** (or DNS Rewrites in **AdGuard Home**) 
 
 ## Key Features
 
-- Automatic Docker container detection.
-- Local DNS/CNAME record creation/deletion in Pi-hole.
-- DNS Rewrites creation/deletion in AdGuard Home.
-- Nginx Proxy Manager host creation.
-- Support for Docker socket proxy.
+- Automatic Docker container detection (monitoring multiple hosts is supported)
+- Local DNS/CNAME record creation/deletion in Pi-hole
+- DNS Rewrites creation/deletion in AdGuard Home
+- Nginx Proxy Manager host creation
+- Support for Docker socket proxy
 
 **Pi-Hole's and AdGuard Home's functionality can be toggled individually. By default Pi-Hole is enabled and AdGuard Home is disabled.**
 
@@ -78,7 +78,7 @@ services:
     restart: unless-stopped
 ```
 
-#### Not Recommended: Mounting the Docker Socket
+#### Not Recommended: Directly mounting the Docker Socket
 
 ```yaml
 services:
@@ -92,7 +92,7 @@ services:
       - PIHOLE_HOST=...
       - PIHOLE_PASSWORD=...
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     restart: unless-stopped
 ```
 

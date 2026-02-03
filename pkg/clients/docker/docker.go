@@ -46,13 +46,15 @@ const (
 
 var labels []string = []string{IpLabel, UrlLabel}
 
-type Client struct {
-	*dockerSdk.Client
-}
-
-func NewClient() (*Client, error) {
-	client, err := dockerSdk.New(context.Background())
-	return &Client{client}, err
+func NewClient(host string) (*Client, error) {
+	client, err := dockerSdk.New(context.Background(), dockerSdk.WithDockerHost(host))
+	var displayHost string
+	if host == "" {
+		displayHost = "local"
+	} else {
+		displayHost = host
+	}
+	return &Client{Client: client, Host: host, DisplayHost: displayHost}, err
 }
 
 func (d *Client) GetRelevantContainers() ([]container.Summary, error) {
@@ -61,7 +63,7 @@ func (d *Client) GetRelevantContainers() ([]container.Summary, error) {
 		f.Add("label", label)
 	}
 
-	log.Info(fmt.Sprintf("Getting containers with labels: %v", strings.Join(labels, ", ")))
+	log.Info(fmt.Sprintf("Getting containers with labels: %v", strings.Join(labels, ", ")), "host", d.DisplayHost)
 
 	return d.ContainerList(
 		context.Background(),
