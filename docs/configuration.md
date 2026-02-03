@@ -22,6 +22,7 @@
 | `ADGUARD_HOME_DISABLED` | Set to `false` to enable AdGuard Home functionality | `true` |
 | `DEBUG` | Set to `true` to enable DEBUG level logs | `false` |
 | `DOCKER_HOST` | The URL of a docker socket proxy. If set, you don't need to mount the docker socket as a volume. Querying containers must be allowed (typically done by setting the `CONTAINERS` environment variable to `1`). | *None* |
+| `DOCKER_HOSTS` | Comma-separated list of multiple docker hosts to monitor, with an empty string meaning the default local host.<br>For example `DOCKER_HOSTS=,tcp://192.168.0.101:2375` | `""` |
 | `PIHOLE_DISABLED` | Set to `true` to disable Pi-Hole functionality | `false` |
 | `RUN_INTERVAL` | The interval at which to scan for new containers, in Go's [`time.ParseDuration`](<https://go.dev/pkg/time/#ParseDuration>){: target="_blank" } format. Set to `0` to run once and exit. | `1h` |
 | `TZ` | Customise the timezone. | *None* |

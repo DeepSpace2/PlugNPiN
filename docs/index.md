@@ -14,6 +14,7 @@ as local DNS/CNAME records in **Pi-Hole** (or DNS Rewrites in **AdGuard Home**) 
 **Pi-Hole's and AdGuard Home's functionality can be toggled individually. By default Pi-Hole is enabled and AdGuard Home is disabled.**
 See [Optional Environment Variables](./configuration.md#optional).
 
+
 ## How It Works
 
 PlugNPiN discovers services by scanning for Docker containers that have the following labels:
