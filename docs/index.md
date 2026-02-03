@@ -8,11 +8,12 @@
 **Plug and play your docker containers into Pi-Hole/AdGuard Home & Nginx Proxy Manager**
 
 Automatically detect running Docker containers based on labels, add them
-as local DNS/[CNAME](#piholeTargetDomainLabel) records in **Pi-Hole** (or DNS Rewrites in **AdGuard Home**) and create matching proxy hosts in
+as local DNS/CNAME records in **Pi-Hole** (or DNS Rewrites in **AdGuard Home**) and create matching proxy hosts in
 **Nginx Proxy Manager**.
 
 **Pi-Hole's and AdGuard Home's functionality can be toggled individually. By default Pi-Hole is enabled and AdGuard Home is disabled.**
-See [Optional Environment Variables](#optional).
+See [Optional Environment Variables](./configuration.md#optional).
+
 
 ## How It Works
 
@@ -38,138 +39,10 @@ When a container is processed in either mode, PlugNPiN will:
 
 To create a DNS Rewrite as a CNAME, set the `plugNPiN.adguardHomeOptions.targetDomain` label.
 
-See [Per Container Configuration ➔ AdGuard Home](#adguardHomeTargetDomainLabel).
+See [Per Container Configuration ➔ AdGuard Home](./configuration.md#adguard-home).
 
 #### Pi-Hole
 
 To create A CNAME record instead of local DNS records ("A record"), set the `plugNPiN.piholeOptions.targetDomain` label.
 
-See [Per Container Configuration ➔ Pi-Hole](#piholeTargetDomainLabel).
-
-
-## Configuration
-
-### Environment Variables
-
-#### Required
-
-| Variable {: style="width:35%" } | Description | Notes |
-|---|---|---|
-| `ADGUARD_HOME_HOST` | The URL of your AdGuard Home instance | Only required if [`ADGUARD_HOME_DISABLED`](#adguardHomeDisabledEnvVar) is set to `false` |
-| `ADGUARD_HOME_USERNAME` | Your AdGuard Home username | Only required if [`ADGUARD_HOME_DISABLED`](#adguardHomeDisabledEnvVar) is set to `false` |
-| `ADGUARD_HOME_PASSWORD` | Your AdGuard Home password | Only required if [`ADGUARD_HOME_DISABLED`](#adguardHomeDisabledEnvVar) is set to `false` |
-| `NGINX_PROXY_MANAGER_HOST` | The URL of your Nginx Proxy Manager instance. | |
-| `NGINX_PROXY_MANAGER_USERNAME` | Your Nginx Proxy Manager username. | |
-| `NGINX_PROXY_MANAGER_PASSWORD` | Your Nginx Proxy Manager password. <br> **Important:** It is recommended to create a new non-admin user with only the "Proxy Hosts - Manage" permission. | |
-| `PIHOLE_HOST` | The URL of your Pi-Hole instance. | Only required if [`PIHOLE_DISABLED`](#piHoleDisabledEnvVar) is set to `false` |
-| `PIHOLE_PASSWORD` | Your Pi-Hole password. <br> **Important:** It is recommended to create an 'application password' rather than using your actual admin password. | Only required if [`PIHOLE_DISABLED`](#piHoleDisabledEnvVar) is set to `false` |
-
-#### Optional
-
-| Variable {: style="width:35%" } | Description | Default {: style="width:10%" } |
-|---|---|---|
-| <div id="adguardHomeDisabledEnvVar"><a name="adguardHomeDisabledEnvVar"></a>`ADGUARD_HOME_DISABLED`</div> | Set to `false` to enable AdGuard Home functionality | `true` |
-| `DEBUG` | Set to `true` to enable DEBUG level logs | `false` |
-| `DOCKER_HOST` | The URL of a docker socket proxy. If set, you don't need to mount the docker socket as a volume. Querying containers must be allowed (typically done by setting the `CONTAINERS` environment variable to `1`). | *None* |
-| <div id="piHoleDisabledEnvVar"><a name="piholeDisabledEnvVar"></a>`PIHOLE_DISABLED`</div> | Set to `true` to disable Pi-Hole functionality | `false` |
-| `RUN_INTERVAL` | The interval at which to scan for new containers, in Go's [`time.ParseDuration`](<https://go.dev/pkg/time/#ParseDuration>){: target="_blank" } format. Set to `0` to run once and exit. | `1h` |
-| `TZ` | Customise the timezone. | *None* |
-
-### Flags
-
-| Flag {: style="width:35%" } | Description |
-|---|---|
-| `--dry-run`, `-d` | Simulates the process of adding DNS/CNAME records and proxy hosts without making any actual changes to Pi-Hole or Nginx Proxy Manager. |
-
-### Per Container Configuration
-
-#### AdGuard Home
-
-| Label {: style="width:45%"} | Description | Default {: style="width:10%"} |
-|---|---|---|
-| <div id="adguardHomeTargetDomainLabel"><a name="adguardHomeTargetDomainLabel"></a>`plugNPiN.adguardHomeOptions.targetDomain`</div> | If provided, a CNAME DNS Rewrite will be created  |  |
-
-#### Nginx Proxy Manager
-
-Use the following labels to configure Nginx Proxy Manager entries
-
-| Label {: style="width:30%"} | Description | Default {: style="width:10%"} | Notes |
-|---|---|---|---|
-| `plugNPiN.npmOptions.advancedConfig` | Advanced nginx configuration (referred to as `Custom Nginx Configuration` in NPM UI) | | If using a docker compose file make sure to use `|` so new lines will be respected, for example:<pre><code>labels:<br>  - plugNPiN.ip=192.168.0.100:8000<br>  - plugNPiN.url=service.home<br>  - \|<br>    plugNPiN.npmOptions.advancedConfig=location / {<br>      allow 192.168.0.1/15;<br>      deny all;<br>    }</code></pre> |
-| `plugNPiN.npmOptions.blockExploits` | Enables or disables the "Block Common Exploits" option on the proxy host. Set to `true` or `false` | `true` | |
-| `plugNPiN.npmOptions.cachingEnabled` | Enables or disables the "Cache Assets" option on the proxy host. Set to `true` or `false`  | `false` | |
-| `plugNPiN.npmOptions.certificateName` | Certificate to use for this host. Must already exist on the NPM instance |  | |
-| `plugNPiN.npmOptions.forceSsl` | Force SSL | `false` | |
-| `plugNPiN.npmOptions.http2Support` | Enable HTTP/2 Support | `false` | |
-| `plugNPiN.npmOptions.hstsEnabled` | Enable HSTS | `false` | |
-| `plugNPiN.npmOptions.hstsSubdomains` | Enable HSTS Subdomains | `false` | |
-| `plugNPiN.npmOptions.scheme` | The scheme used to forward traffic to the container. Can be `http` or `https` | `http` | |
-| `plugNPiN.npmOptions.websocketsSupport` | Enables or disables the "Allow Websocket Upgrade" option on the proxy host. Set to `true` or `false` | `false` | |
-
-#### Pi-Hole
-
-| Label {: style="width:35%"} | Description | Default {: style="width:10%"} |
-|---|---|---|
-| <div id="piholeTargetDomainLabel"><a name="piholeTargetDomainLabel"></a>`plugNPiN.piholeOptions.targetDomain`</div> | If provided, a CNAME record will be created **instead** of a DNS record |  |
-
-
-## Usage
-
-### Docker Compose
-
-It is **highly recommended** to use a Docker socket proxy to avoid giving the container direct access to the Docker daemon. This improves security by limiting the container's privileges.
-
-#### Recommended: Using a Docker Socket Proxy
-
-```yaml
-services:
-  socket-proxy:
-    image: lscr.io/linuxserver/socket-proxy:latest
-    container_name: socket-proxy
-    environment:
-      # Allow access to the container list
-      - CONTAINERS=1
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    read_only: true
-    tmpfs:
-      - /run
-
-  plugnpin:
-    image: ghcr.io/deepspace2/plugnpin:latest
-    container_name: plugnpin
-    depends_on:
-      - socket-proxy
-    environment:
-      - DOCKER_HOST=tcp://socket-proxy:2375
-      - NGINX_PROXY_MANAGER_HOST=...
-      - NGINX_PROXY_MANAGER_USERNAME=...
-      - NGINX_PROXY_MANAGER_PASSWORD=...
-      - PIHOLE_HOST=...
-      - PIHOLE_PASSWORD=...
-    restart: unless-stopped
-```
-
-#### Not Recommended: Mounting the Docker Socket
-
-```yaml
-services:
-  plugnpin:
-    image: ghcr.io/deepspace2/plugnpin:latest
-    container_name: plugnpin
-    environment:
-      - NGINX_PROXY_MANAGER_HOST=...
-      - NGINX_PROXY_MANAGER_USERNAME=...
-      - NGINX_PROXY_MANAGER_PASSWORD=...
-      - PIHOLE_HOST=...
-      - PIHOLE_PASSWORD=...
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    restart: unless-stopped
-```
-
-## Contributing
-
-Contributions are very welcome! If you have a feature request, bug report, or want to contribute yourself, please feel free to open an issue or submit a pull request.
-
-*[NPM]: Nginx Proxy Manager
+See [Per Container Configuration ➔ Pi-Hole](./configuration.md#pi-hole).

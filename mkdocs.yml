@@ -3,10 +3,11 @@
 site_name: PlugNPiN
 site_url: https://deepspace2.github.io/plugnpin
 repo_url: https://github.com/deepspace2/plugnpin
-extra_css:
-  - css/anchor-jump-highlight.css
-extra_javascript:
-  - js/anchor-jump-highlight.js
+nav:
+  - About: index.md
+  - Configuration: configuration.md
+  - Usage: usage.md
+  - Contributing: contributing.md
 theme:
   name: material
   custom_dir: docs/theme/overrides
@@ -15,6 +16,9 @@ theme:
   features:
     - content.code.copy
     - content.tooltips
+    - navigation.footer
+    - navigation.instant
+    - navigation.instant.progress
     - navigation.top
     - search.highlight
     - search.share
@@ -45,14 +49,12 @@ extra:
     alias: true
     provider: mike
 markdown_extensions:
-  - admonition
   - abbr
   - attr_list
-  - pymdownx.details
-  - pymdownx.inlinehilite
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
       pygments_lang_class: true
-  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
   - pymdownx.superfences
