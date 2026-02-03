@@ -2,6 +2,18 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://deepspace2.github.io/plugnpin/develop/</loc>
-         <lastmod>2026-01-10</lastmod>
+         <lastmod>2026-02-03</lastmod>
+    </url>
+    <url>
+         <loc>https://deepspace2.github.io/plugnpin/develop/configuration/</loc>
+         <lastmod>2026-02-03</lastmod>
+    </url>
+    <url>
+         <loc>https://deepspace2.github.io/plugnpin/develop/contributing/</loc>
+         <lastmod>2026-02-03</lastmod>
+    </url>
+    <url>
+         <loc>https://deepspace2.github.io/plugnpin/develop/usage/</loc>
+         <lastmod>2026-02-03</lastmod>
     </url>
 </urlset>
