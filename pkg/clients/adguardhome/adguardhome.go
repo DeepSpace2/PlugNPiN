@@ -48,48 +48,53 @@ func (ad *Client) GetDnsRewrites() (DnsRewrites, error) {
 	return dnsRewrites, nil
 }
 
-func (ad *Client) AddDnsRewrite(domain, ip string) error {
+func (ad *Client) AddDnsRewrites(domains []string, ip string) error {
 	existingRecords, err := ad.GetDnsRewrites()
 	if err != nil {
 		return err
 	}
-	d := DomainName(domain)
-	_, exists := existingRecords[d]
 
-	if exists {
-		return nil
-	}
+	for _, domain := range domains {
+		d := DomainName(domain)
+		_, exists := existingRecords[d]
 
-	payload, err := json.Marshal(DnsRewrite{Answer: ip, Domain: domain, Enabled: true})
-	if err != nil {
-		return err
-	}
-	payloadString := string(payload)
-	_, statusCode, err := common.Post(&ad.Client, ad.baseURL+"/rewrite/add", headers, &payloadString)
-	if err != nil {
-		return err
-	}
+		if exists {
+			continue
+		}
 
-	if statusCode == 401 {
-		return errors.New("Unauthorized")
+		payload, err := json.Marshal(DnsRewrite{Answer: ip, Domain: domain, Enabled: true})
+		if err != nil {
+			return err
+		}
+		payloadString := string(payload)
+		_, statusCode, err := common.Post(&ad.Client, ad.baseURL+"/rewrite/add", headers, &payloadString)
+		if err != nil {
+			return err
+		}
+
+		if statusCode == 401 {
+			return errors.New("Unauthorized")
+		}
 	}
 
 	return nil
 }
 
-func (ad *Client) DeleteDnsRewrite(domain, ip string) error {
-	payload, err := json.Marshal(DnsRewrite{Answer: ip, Domain: domain, Enabled: true})
-	if err != nil {
-		return err
-	}
-	payloadString := string(payload)
-	_, statusCode, err := common.Post(&ad.Client, ad.baseURL+"/rewrite/delete", headers, &payloadString)
-	if err != nil {
-		return err
-	}
+func (ad *Client) DeleteDnsRewrites(domains []string, ip string) error {
+	for _, domain := range domains {
+		payload, err := json.Marshal(DnsRewrite{Answer: ip, Domain: domain, Enabled: true})
+		if err != nil {
+			return err
+		}
+		payloadString := string(payload)
+		_, statusCode, err := common.Post(&ad.Client, ad.baseURL+"/rewrite/delete", headers, &payloadString)
+		if err != nil {
+			return err
+		}
 
-	if statusCode == 401 {
-		return errors.New("Unauthorized")
+		if statusCode == 401 {
+			return errors.New("Unauthorized")
+		}
 	}
 
 	return nil

@@ -60,8 +60,8 @@ func TestLogin(t *testing.T) {
 	})
 }
 
-func TestAddDnsRecord(t *testing.T) {
-	t.Run("successful add", func(t *testing.T) {
+func TestAddDnsRecords(t *testing.T) {
+	t.Run("successful add multiple", func(t *testing.T) {
 		// This handler needs to handle two requests in sequence
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "/api/config", r.URL.Path)
@@ -81,8 +81,8 @@ func TestAddDnsRecord(t *testing.T) {
 				err := json.NewDecoder(r.Body).Decode(&payload)
 				assert.NoError(t, err)
 
-				// Assert that the new payload contains both the old and the new record.
-				expectedRecords := []string{"1.1.1.1 one.com", "1.2.3.4 test.com"}
+				// Assert that the new payload contains both the old and the new records.
+				expectedRecords := []string{"1.1.1.1 one.com", "1.2.3.4 test1.com", "1.2.3.4 test2.com"}
 				assert.ElementsMatch(t, expectedRecords, payload.Config.DNS.Hosts)
 
 				w.WriteHeader(http.StatusOK)
@@ -100,13 +100,13 @@ func TestAddDnsRecord(t *testing.T) {
 		// Manually set the session ID that the login step would have provided
 		client.sid = "test-sid"
 
-		err := client.AddDnsRecord("test.com", "1.2.3.4")
+		err := client.AddDnsRecords([]string{"test1.com", "test2.com"}, "1.2.3.4")
 		assert.NoError(t, err)
 	})
 }
 
-func TestDeleteDnsRecord(t *testing.T) {
-	t.Run("successful delete", func(t *testing.T) {
+func TestDeleteDnsRecords(t *testing.T) {
+	t.Run("successful delete multiple", func(t *testing.T) {
 		patchCalled := false
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "/api/config", r.URL.Path)
@@ -114,8 +114,8 @@ func TestDeleteDnsRecord(t *testing.T) {
 
 			if r.Method == http.MethodGet {
 				w.WriteHeader(http.StatusOK)
-				// Respond with two existing records, one of which we will delete.
-				fmt.Fprint(w, `{"config": {"dns": {"hosts": ["1.1.1.1 one.com", "2.2.2.2 two.com"]}}}`)
+				// Respond with three existing records, two of which we will delete.
+				fmt.Fprint(w, `{"config": {"dns": {"hosts": ["1.1.1.1 one.com", "2.2.2.2 two.com", "3.3.3.3 three.com"]}}}`)
 				return
 			}
 
@@ -140,12 +140,12 @@ func TestDeleteDnsRecord(t *testing.T) {
 		defer server.Close()
 		client.sid = "test-sid"
 
-		err := client.DeleteDnsRecord("two.com")
+		err := client.DeleteDnsRecords([]string{"two.com", "three.com"})
 		assert.NoError(t, err)
 		assert.True(t, patchCalled, "The PATCH endpoint was not called")
 	})
 
-	t.Run("no action if record does not exist", func(t *testing.T) {
+	t.Run("no action if records do not exist", func(t *testing.T) {
 		patchCalled := false
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "/api/config", r.URL.Path)
@@ -163,7 +163,7 @@ func TestDeleteDnsRecord(t *testing.T) {
 		defer server.Close()
 		client.sid = "test-sid"
 
-		err := client.DeleteDnsRecord("non-existent.com")
+		err := client.DeleteDnsRecords([]string{"non-existent.com"})
 		assert.NoError(t, err)
 		assert.False(t, patchCalled, "The PATCH endpoint was called unexpectedly")
 	})
@@ -211,8 +211,8 @@ func TestDnsRecordToRaw(t *testing.T) {
 	assert.Equal(t, expected, actual)
 }
 
-func TestAddCNameRecord(t *testing.T) {
-	t.Run("successful add", func(t *testing.T) {
+func TestAddCNameRecords(t *testing.T) {
+	t.Run("successful add multiple", func(t *testing.T) {
 		// This handler needs to handle two requests in sequence
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "/api/config", r.URL.Path)
@@ -232,8 +232,8 @@ func TestAddCNameRecord(t *testing.T) {
 				err := json.NewDecoder(r.Body).Decode(&payload)
 				assert.NoError(t, err)
 
-				// Assert that the new payload contains both the old and the new record.
-				expectedCNames := []string{"one.com,one.two.com", "test.com,test.two.com"}
+				// Assert that the new payload contains both the old and the new records.
+				expectedCNames := []string{"one.com,one.two.com", "test1.com,test.two.com", "test2.com,test.two.com"}
 				assert.ElementsMatch(t, expectedCNames, payload.Config.DNS.CnameRecords)
 
 				w.WriteHeader(http.StatusOK)
@@ -251,13 +251,13 @@ func TestAddCNameRecord(t *testing.T) {
 		// Manually set the session ID that the login step would have provided
 		client.sid = "test-sid"
 
-		err := client.AddCNameRecord("test.com", "test.two.com")
+		err := client.AddCNameRecords([]string{"test1.com", "test2.com"}, "test.two.com")
 		assert.NoError(t, err)
 	})
 }
 
-func TestDeleteCNameRecord(t *testing.T) {
-	t.Run("successful delete", func(t *testing.T) {
+func TestDeleteCNameRecords(t *testing.T) {
+	t.Run("successful delete multiple", func(t *testing.T) {
 		patchCalled := false
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "/api/config", r.URL.Path)
@@ -265,8 +265,8 @@ func TestDeleteCNameRecord(t *testing.T) {
 
 			if r.Method == http.MethodGet {
 				w.WriteHeader(http.StatusOK)
-				// Respond with two existing cname records, one of which we will delete.
-				fmt.Fprint(w, `{"config": {"dns": {"cnameRecords": ["one.com,one.two.com", "two.com,two.two.com"]}}}`)
+				// Respond with three existing cname records, two of which we will delete.
+				fmt.Fprint(w, `{"config": {"dns": {"cnameRecords": ["one.com,one.two.com", "two.com,two.two.com", "three.com,three.two.com"]}}}`)
 				return
 			}
 
@@ -291,7 +291,7 @@ func TestDeleteCNameRecord(t *testing.T) {
 		defer server.Close()
 		client.sid = "test-sid"
 
-		err := client.DeleteCNameRecord("two.com", "two.two.com")
+		err := client.DeleteCNameRecords([]string{"two.com", "three.com"})
 		assert.NoError(t, err)
 		assert.True(t, patchCalled, "The PATCH endpoint was not called")
 	})
@@ -314,7 +314,7 @@ func TestDeleteCNameRecord(t *testing.T) {
 		defer server.Close()
 		client.sid = "test-sid"
 
-		err := client.DeleteCNameRecord("non-existent.com", "non-existent.two.com")
+		err := client.DeleteCNameRecords([]string{"non-existent.com"})
 		assert.NoError(t, err)
 		assert.False(t, patchCalled, "The PATCH endpoint was called unexpectedly")
 	})

@@ -65,7 +65,7 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 		name                                   string
 		container                              container.Summary
 		expectedIP                             string
-		expectedURL                            string
+		expectedURLs                           []string
 		expectedPort                           int
 		expectedErr                            error
 		expectedAdguardHomeOptionsTargetDomain string
@@ -84,7 +84,24 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 				},
 			},
 			expectedIP:                          "192.168.1.10",
-			expectedURL:                         "my-service.example.com",
+			expectedURLs:                        []string{"my-service.example.com"},
+			expectedPort:                        8080,
+			expectedErr:                         nil,
+			expectedNpmOptionsBlockExploits:     true,
+			expectedNpmOptionsCachingEnabled:    false,
+			expectedNpmOptionsScheme:            "http",
+			expectedNpmOptionsWebsocketsSupport: false,
+		},
+		{
+			name: "Multiple URLs",
+			container: container.Summary{
+				Labels: map[string]string{
+					IpLabel:  "192.168.1.10:8080",
+					UrlLabel: "my-service.example.com,my-service.local",
+				},
+			},
+			expectedIP:                          "192.168.1.10",
+			expectedURLs:                        []string{"my-service.example.com", "my-service.local"},
 			expectedPort:                        8080,
 			expectedErr:                         nil,
 			expectedNpmOptionsBlockExploits:     true,
@@ -101,7 +118,7 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 				},
 			},
 			expectedIP:   "",
-			expectedURL:  "",
+			expectedURLs: nil,
 			expectedPort: 0,
 			expectedErr:  &errors.MalformedIPLabelError{Msg: fmt.Sprintf("missing ':' in value of '%v' label", IpLabel)},
 		},
@@ -114,7 +131,7 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 				},
 			},
 			expectedIP:   "",
-			expectedURL:  "",
+			expectedURLs: nil,
 			expectedPort: 0,
 			expectedErr:  &errors.MalformedIPLabelError{Msg: fmt.Sprintf("value after ':' in value of '%v' label must be an integer, got 'http'", IpLabel)},
 		},
@@ -131,7 +148,7 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 				},
 			},
 			expectedIP:                          "192.168.1.10",
-			expectedURL:                         "my-service.example.com",
+			expectedURLs:                        []string{"my-service.example.com"},
 			expectedPort:                        8080,
 			expectedErr:                         nil,
 			expectedNpmOptionsBlockExploits:     false,
@@ -151,7 +168,7 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 				},
 			},
 			expectedIP:                          "192.168.1.10",
-			expectedURL:                         "my-service.example.com",
+			expectedURLs:                        []string{"my-service.example.com"},
 			expectedPort:                        8080,
 			expectedErr:                         nil,
 			expectedNpmOptionsBlockExploits:     true,
@@ -171,7 +188,7 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 				},
 			},
 			expectedIP:                          "192.168.1.10",
-			expectedURL:                         "my-service.example.com",
+			expectedURLs:                        []string{"my-service.example.com"},
 			expectedPort:                        8080,
 			expectedErr:                         nil,
 			expectedNpmOptionsBlockExploits:     false,
@@ -191,7 +208,7 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 				},
 			},
 			expectedIP:                          "192.168.1.10",
-			expectedURL:                         "my-service.example.com",
+			expectedURLs:                        []string{"my-service.example.com"},
 			expectedPort:                        8080,
 			expectedErr:                         nil,
 			expectedNpmOptionsBlockExploits:     false,
@@ -209,7 +226,7 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 				},
 			},
 			expectedIP:   "",
-			expectedURL:  "",
+			expectedURLs: nil,
 			expectedPort: 0,
 			expectedErr:  &errors.InvalidSchemeError{Msg: fmt.Sprintf("value of '%v' label must be one of 'http', 'https', got 'invalid'", npmOptionsSchemeLabel)},
 		},
@@ -223,7 +240,7 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 				},
 			},
 			expectedIP:                          "192.168.1.10",
-			expectedURL:                         "my-service.example.com",
+			expectedURLs:                        []string{"my-service.example.com"},
 			expectedPort:                        8080,
 			expectedErr:                         nil,
 			expectedNpmOptionsBlockExploits:     true,
@@ -240,7 +257,7 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 				},
 			},
 			expectedIP:                        "192.168.1.10",
-			expectedURL:                       "my-service.example.com",
+			expectedURLs:                      []string{"my-service.example.com"},
 			expectedPort:                      8080,
 			expectedErr:                       nil,
 			expectedNpmOptionsScheme:          "http",
@@ -257,7 +274,7 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 				},
 			},
 			expectedIP:                        "192.168.1.10",
-			expectedURL:                       "my-service.example.com",
+			expectedURLs:                      []string{"my-service.example.com"},
 			expectedPort:                      8080,
 			expectedErr:                       nil,
 			expectedNpmOptionsScheme:          "http",
@@ -274,7 +291,7 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 				},
 			},
 			expectedIP:                             "192.168.1.10",
-			expectedURL:                            "my-service.example.com",
+			expectedURLs:                            []string{"my-service.example.com"},
 			expectedPort:                           8080,
 			expectedErr:                            nil,
 			expectedNpmOptionsScheme:               "http",
@@ -285,10 +302,10 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			ip, url, port, opts, err := GetValuesFromLabels(tc.container.Labels)
+			ip, urls, port, opts, err := GetValuesFromLabels(tc.container.Labels)
 
 			assert.Equal(t, tc.expectedIP, ip)
-			assert.Equal(t, tc.expectedURL, url)
+			assert.Equal(t, tc.expectedURLs, urls)
 			assert.Equal(t, tc.expectedPort, port)
 			assert.Equal(t, tc.expectedErr, err)
 			if err == nil {

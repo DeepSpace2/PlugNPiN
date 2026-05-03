@@ -11,6 +11,7 @@ require (
 	github.com/moby/term v0.5.2
 	github.com/spf13/pflag v1.0.7
 	github.com/stretchr/testify v1.10.0
+	golang.org/x/sync v0.20.0
 )
 
 require (

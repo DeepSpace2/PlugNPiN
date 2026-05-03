@@ -91,19 +91,24 @@ func (p *Client) GetDnsRecords() (DnsRecords, error) {
 	return dnsRecords, nil
 }
 
-func (p *Client) AddDnsRecord(domain, ip string) error {
+func (p *Client) AddDnsRecords(domains []string, ip string) error {
 	existingRecords, err := p.GetDnsRecords()
 	if err != nil {
 		return err
 	}
-	d := DomainName(domain)
-	_, exists := existingRecords[d]
 
-	if exists {
-		return nil
+	modified := false
+	for _, domain := range domains {
+		d := DomainName(domain)
+		if _, exists := existingRecords[d]; !exists {
+			existingRecords[d] = IP(ip)
+			modified = true
+		}
 	}
 
-	existingRecords[d] = IP(ip)
+	if !modified {
+		return nil
+	}
 
 	rawRecordsSlice := []string{}
 	for domain, ip := range existingRecords {
@@ -129,7 +134,7 @@ func (p *Client) AddDnsRecord(domain, ip string) error {
 	}
 	if statusCode == 401 {
 		p.refreshAuth()
-		return p.AddDnsRecord(domain, ip)
+		return p.AddDnsRecords(domains, ip)
 	}
 	if statusCode >= 400 {
 		var errorResponse ErrorResponse
@@ -140,19 +145,24 @@ func (p *Client) AddDnsRecord(domain, ip string) error {
 	return nil
 }
 
-func (p *Client) DeleteDnsRecord(domain string) error {
+func (p *Client) DeleteDnsRecords(domains []string) error {
 	existingRecords, err := p.GetDnsRecords()
 	if err != nil {
 		return err
 	}
-	d := DomainName(domain)
-	_, exists := existingRecords[d]
 
-	if !exists {
-		return nil
+	modified := false
+	for _, domain := range domains {
+		d := DomainName(domain)
+		if _, exists := existingRecords[d]; exists {
+			delete(existingRecords, d)
+			modified = true
+		}
 	}
 
-	delete(existingRecords, d)
+	if !modified {
+		return nil
+	}
 
 	rawRecordsSlice := []string{}
 	for domain, ip := range existingRecords {
@@ -178,7 +188,7 @@ func (p *Client) DeleteDnsRecord(domain string) error {
 	}
 	if statusCode == 401 {
 		p.refreshAuth()
-		return p.DeleteDnsRecord(domain)
+		return p.DeleteDnsRecords(domains)
 	}
 	if statusCode >= 400 {
 		var errorResponse ErrorResponse
@@ -228,19 +238,24 @@ func (p *Client) getCNameRecords() (CNameRecords, error) {
 	return cNameRecords, nil
 }
 
-func (p *Client) AddCNameRecord(domain, target string) error {
+func (p *Client) AddCNameRecords(domains []string, target string) error {
 	existingRecords, err := p.getCNameRecords()
 	if err != nil {
 		return err
 	}
-	d := DomainName(domain)
-	_, exists := existingRecords[d]
 
-	if exists {
-		return nil
+	modified := false
+	for _, domain := range domains {
+		d := DomainName(domain)
+		if _, exists := existingRecords[d]; !exists {
+			existingRecords[d] = Target(target)
+			modified = true
+		}
 	}
 
-	existingRecords[d] = Target(target)
+	if !modified {
+		return nil
+	}
 
 	rawRecordsSlice := []string{}
 	for domain, target := range existingRecords {
@@ -266,7 +281,7 @@ func (p *Client) AddCNameRecord(domain, target string) error {
 	}
 	if statusCode == 401 {
 		p.refreshAuth()
-		return p.AddCNameRecord(domain, target)
+		return p.AddCNameRecords(domains, target)
 	}
 	if statusCode >= 400 {
 		var errorResponse ErrorResponse
@@ -277,19 +292,24 @@ func (p *Client) AddCNameRecord(domain, target string) error {
 	return nil
 }
 
-func (p *Client) DeleteCNameRecord(domain, target string) error {
+func (p *Client) DeleteCNameRecords(domains []string) error {
 	existingRecords, err := p.getCNameRecords()
 	if err != nil {
 		return err
 	}
-	d := DomainName(domain)
-	_, exists := existingRecords[d]
 
-	if !exists {
-		return nil
+	modified := false
+	for _, domain := range domains {
+		d := DomainName(domain)
+		if _, exists := existingRecords[d]; exists {
+			delete(existingRecords, d)
+			modified = true
+		}
 	}
 
-	delete(existingRecords, d)
+	if !modified {
+		return nil
+	}
 
 	rawRecordsSlice := []string{}
 	for domain, target := range existingRecords {
@@ -315,7 +335,7 @@ func (p *Client) DeleteCNameRecord(domain, target string) error {
 	}
 	if statusCode == 401 {
 		p.refreshAuth()
-		return p.DeleteCNameRecord(domain, target)
+		return p.DeleteCNameRecords(domains)
 	}
 	if statusCode >= 400 {
 		var errorResponse ErrorResponse

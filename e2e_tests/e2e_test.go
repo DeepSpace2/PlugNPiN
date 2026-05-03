@@ -5,7 +5,10 @@ package e2e_tests
 import (
 	"context"
 	"fmt"
+	"maps"
 	"os"
+	"slices"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -16,7 +19,8 @@ import (
 	dockerApi "github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
 	"github.com/joho/godotenv"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/deepspace2/plugnpin/pkg/clients/adguardhome"
 	"github.com/deepspace2/plugnpin/pkg/clients/docker"
@@ -61,22 +65,29 @@ func getEnvVars() (*config, error) {
 }
 
 func pullRequiredImages(t *testing.T, ctx context.Context, dockerApi *dockerApi.Client, containers []Container) {
-	var wg sync.WaitGroup
+	g, gCtx := errgroup.WithContext(ctx)
+
 	for i := range containers {
-		wg.Go(func() {
-			err := pullImage(ctx, dockerApi, containers[i].image)
+		g.Go(func() error {
+			err := pullImage(gCtx, dockerApi, containers[i].image)
 			if err != nil {
-				t.Fatalf("Failed to pull image %s: %v", containers[i].image, err)
+				return fmt.Errorf("failed to pull image %s: %w", containers[i].image, err)
 			}
+			return nil
 		})
 	}
-	wg.Wait()
+
+	if err := g.Wait(); err != nil {
+		cleanup(t, ctx, dockerApi, containers, nil)
+		t.Fatal(err)
+	}
 }
 
 func startRequiredContainers(t *testing.T, ctx context.Context, dockerCli *dockerApi.Client, containers []Container) {
-	var wg sync.WaitGroup
+	g, gCtx := errgroup.WithContext(ctx)
+
 	for i := range containers {
-		wg.Go(func() {
+		g.Go(func() error {
 			cfg := &containerApi.Config{
 				Cmd:          containers[i].cmd,
 				Env:          containers[i].env,
@@ -93,7 +104,7 @@ func startRequiredContainers(t *testing.T, ctx context.Context, dockerCli *docke
 			}
 
 			response, err := dockerCli.ContainerCreate(
-				ctx,
+				gCtx,
 				cfg,
 				containers[i].hostConfig,
 				nil,
@@ -101,19 +112,20 @@ func startRequiredContainers(t *testing.T, ctx context.Context, dockerCli *docke
 				containers[i].name,
 			)
 			if err != nil {
-				t.Fatalf("Failed to create container %s: %v", containers[i].name, err)
+				logger.Error("error creating container", "name", containers[i].name, "error", err)
+				return fmt.Errorf("failed to create container %s: %v", containers[i].name, err)
 			}
 			containers[i].id = response.ID
 			logger.Info("container started", "name", containers[i].name, "id", containers[i].id)
 			err = dockerCli.ContainerStart(ctx, containers[i].id, containerApi.StartOptions{})
 			if err != nil {
-				t.Fatalf("Failed to start container %s: %v", containers[i].name, err)
+				return fmt.Errorf("failed to start container %s: %v", containers[i].name, err)
 			}
 
 			if containers[i].exposedPort != "" {
 				containerInfo, err := dockerCli.ContainerInspect(ctx, containers[i].id)
 				if err != nil {
-					t.Fatalf("Failed to inspect container %s: %v", containers[i].name, err)
+					return fmt.Errorf("failed to inspect container %s: %v", containers[i].name, err)
 				}
 				bindings := containerInfo.NetworkSettings.Ports[containers[i].exposedPort]
 				if len(bindings) > 0 {
@@ -122,9 +134,13 @@ func startRequiredContainers(t *testing.T, ctx context.Context, dockerCli *docke
 					logger.Info("Discovered URL for container", "name", containers[i].name, "url", containers[i].url)
 				}
 			}
+			return nil
 		})
 	}
-	wg.Wait()
+	if err := g.Wait(); err != nil {
+		cleanup(t, ctx, dockerCli, containers, nil)
+		t.Fatal(err)
+	}
 }
 
 func setClients(t *testing.T, containers []Container) (*docker.Client, *pihole.Client, *npm.Client, *adguardhome.Client) {
@@ -200,33 +216,38 @@ func setup(t *testing.T, ctx context.Context, dockerCli *dockerApi.Client, conta
 func cleanup(t *testing.T, ctx context.Context, dockerCli *dockerApi.Client, containers []Container, npmClient *npm.Client) {
 	logger.Info("In cleanup")
 
-	npmProxyHosts, err := npmClient.GetProxyHosts()
-	if err != nil {
-		t.Fatalf("Failed to get NPM proxy hosts in cleanup: %v", err)
+	if npmClient != nil {
+		npmProxyHosts, err := npmClient.GetProxyHosts()
+		if err == nil {
+			npmClient.DeleteProxyHosts(slices.Collect(maps.Keys(npmProxyHosts)))
+		}
 	}
-	for domain := range npmProxyHosts {
-		npmClient.DeleteProxyHost(domain)
-	}
-
+	imagesToRemove := make(map[string]struct{})
 	var wg sync.WaitGroup
 	for i := range containers {
+		imagesToRemove[containers[i].image] = struct{}{}
 		wg.Go(func() {
+			if containers[i].id == "" {
+				return
+			}
 			err := dockerCli.ContainerRemove(ctx, containers[i].id, containerApi.RemoveOptions{
 				Force: true,
 			})
 			if err != nil {
-				t.Fatalf("Could not remove container %s: %v", containers[i].name, err)
-			}
-
-			_, err = dockerCli.ImageRemove(ctx, containers[i].image, imageApi.RemoveOptions{
-				Force: true,
-			})
-			if err != nil {
-				t.Fatalf("Could not remove image %s: %v", containers[i].image, err)
+				logger.Error("Could not remove container", "name", containers[i].name, "error", err)
 			}
 		})
 	}
 	wg.Wait()
+
+	for image := range imagesToRemove {
+		_, err := dockerCli.ImageRemove(ctx, image, imageApi.RemoveOptions{
+			Force: true,
+		})
+		if err != nil {
+			logger.Error("Could not remove image", "image", image, "error", err)
+		}
+	}
 }
 
 func TestE2E(t *testing.T) {
@@ -292,9 +313,19 @@ func TestE2E(t *testing.T) {
 			cmd:   []string{"tail", "-f", "/dev/null"},
 			labels: map[string]string{
 				docker.IpLabel:  "1.1.1.1:8080",
-				docker.UrlLabel: "busybox.home",
+				docker.UrlLabel: "busybox1.home",
 			},
-			name:       testContainerName,
+			name:       testContainerName + "-1",
+			hostConfig: &containerApi.HostConfig{},
+		},
+		{
+			image: testContainerImage,
+			cmd:   []string{"tail", "-f", "/dev/null"},
+			labels: map[string]string{
+				docker.IpLabel:  "2.2.2.2:8080",
+				docker.UrlLabel: "busybox2.home,busybox2.local",
+			},
+			name:       testContainerName + "-2",
 			hostConfig: &containerApi.HostConfig{},
 		},
 	}
@@ -333,23 +364,26 @@ func TestE2E(t *testing.T) {
 	}
 
 	for _, container := range containers {
-		url, dockerUrlLabelExists := container.labels[docker.UrlLabel]
+		urlsString, dockerUrlLabelExists := container.labels[docker.UrlLabel]
 		if dockerUrlLabelExists {
-			piholeDnsRecordIP, exists := piholeDnsRecords[pihole.DomainName(url)]
+			urls := strings.Split(urlsString, ",")
+			for _, url := range urls {
+				piholeDnsRecordIP, exists := piholeDnsRecords[pihole.DomainName(url)]
 
-			// Assert that the "add" functionality worked
-			assert.True(t, exists, "A pihole DNS record should exist for the url %s", url)
-			assert.Equal(t, pihole.IP(npmClient.GetIP()), piholeDnsRecordIP, "The pihole DNS record should point to the NPM container's IP")
-			assert.Contains(t, npmProxyHosts, url, "The NPM proxy hosts should contain the url %s", url)
+				// Assert that the "add" functionality worked
+				require.True(t, exists, "A pihole DNS record should exist for the url %s", url)
+				require.Equal(t, pihole.IP(npmClient.GetIP()), piholeDnsRecordIP, "The pihole DNS record should point to the NPM container's IP")
+				require.Contains(t, npmProxyHosts, url, "The NPM proxy hosts should contain the url %s", url)
 
-			adguardHomeDnsRewriteIP, exists := adguardDnsRewrites[adguardhome.DomainName(url)]
-			assert.True(t, exists, "An AdGuard Home DNS rewrite should exist for the url %s", url)
-			assert.Equal(t, adguardhome.IP(npmClient.GetIP()), adguardHomeDnsRewriteIP, "The AdGuard Home DNS rewrite should point to the NPM container's IP")
+				adguardHomeDnsRewriteIP, exists := adguardDnsRewrites[adguardhome.DomainName(url)]
+				require.True(t, exists, "An AdGuard Home DNS rewrite should exist for the url %s", url)
+				require.Equal(t, adguardhome.IP(npmClient.GetIP()), adguardHomeDnsRewriteIP, "The AdGuard Home DNS rewrite should point to the NPM container's IP")
+			}
 
-			// Deleting from pihole and npm so we can assert delete functionality
-			piholeClient.DeleteDnsRecord(url)
-			npmClient.DeleteProxyHost(url)
-			adguardHomeClient.DeleteDnsRewrite(url, npmClient.GetIP())
+			// Deleting to assert delete functionality
+			piholeClient.DeleteDnsRecords(urls)
+			npmClient.DeleteProxyHosts(urls)
+			adguardHomeClient.DeleteDnsRewrites(urls, npmClient.GetIP())
 
 			piholeDnsRecords, err := piholeClient.GetDnsRecords()
 			if err != nil {
@@ -365,10 +399,11 @@ func TestE2E(t *testing.T) {
 			}
 
 			// Assert that the "delete" functionality worked
-			assert.NotContains(t, piholeDnsRecords, pihole.DomainName(url), "The pihole DNS record should be deleted for %s", url)
-			assert.NotContains(t, npmProxyHosts, url, "The NPM proxy host should be deleted for %s", url)
-			assert.NotContains(t, adguardDnsRewrites, url, "The AdGuard Home DNS rewrite should be deleted for %s", url)
-
+			for _, url := range urls {
+				require.NotContains(t, piholeDnsRecords, pihole.DomainName(url), "The pihole DNS record should be deleted for %s", url)
+				require.NotContains(t, npmProxyHosts, url, "The NPM proxy host should be deleted for %s", url)
+				require.NotContains(t, adguardDnsRewrites, url, "The AdGuard Home DNS rewrite should be deleted for %s", url)
+			}
 		}
 	}
 }

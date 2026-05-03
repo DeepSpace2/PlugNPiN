@@ -13,6 +13,9 @@ import (
 )
 
 func pullImage(ctx context.Context, dockerCli *dockerCliClient.Client, img string) error {
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
 	reader, err := dockerCli.ImagePull(ctx, img, imageApi.PullOptions{})
 	if err != nil {
 		return err
@@ -23,4 +26,3 @@ func pullImage(ctx context.Context, dockerCli *dockerCliClient.Client, img strin
 	jsonmessage.DisplayJSONMessagesStream(reader, os.Stderr, termFd, isTerm, nil)
 	return nil
 }
-
