@@ -207,13 +207,23 @@ func (n *Client) AddProxyHost(host ProxyHost) error {
 	return nil
 }
 
-func (n *Client) DeleteProxyHost(domain string) error {
+func (n *Client) DeleteProxyHosts(domains []string) error {
 	existingProxyHosts, err := n.GetProxyHosts()
 	if err != nil {
 		return err
 	}
-	hostID, exists := existingProxyHosts[domain]
-	if !exists {
+
+	var hostID int
+	found := false
+	for _, domain := range domains {
+		if id, exists := existingProxyHosts[domain]; exists {
+			hostID = id
+			found = true
+			break
+		}
+	}
+
+	if !found {
 		return nil
 	}
 

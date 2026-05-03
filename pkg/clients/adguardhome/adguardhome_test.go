@@ -56,7 +56,7 @@ func TestAddDnsRewrite(t *testing.T) {
 		client, server := setupTestServer("testuser", "testpass", handler)
 		defer server.Close()
 
-		err := client.AddDnsRewrite("test.com", "1.2.3.4")
+		err := client.AddDnsRewrites([]string{"test.com"}, "1.2.3.4")
 		assert.NoError(t, err)
 	})
 }
@@ -96,7 +96,7 @@ func TestDeleteDnsRewrite(t *testing.T) {
 		client, server := setupTestServer("testuser", "testpass", handler)
 		defer server.Close()
 
-		err := client.DeleteDnsRewrite("test.com", "1.2.3.4")
+		err := client.DeleteDnsRewrites([]string{"test.com"}, "1.2.3.4")
 		assert.NoError(t, err)
 		assert.True(t, deleteCalled, "Delete API endpoint was not called")
 
@@ -135,7 +135,7 @@ func TestWrongCredentials(t *testing.T) {
 		client, server := setupTestServer("testuser", "wrongpass", handler)
 		defer server.Close()
 
-		err := client.DeleteDnsRewrite("test.com", "1.2.3.4")
+		err := client.DeleteDnsRewrites([]string{"test.com"}, "1.2.3.4")
 		assert.Error(t, err)
 	})
 }

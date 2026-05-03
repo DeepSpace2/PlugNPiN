@@ -116,10 +116,10 @@ func TestAddProxyHost(t *testing.T) {
 	})
 }
 
-func TestDeleteProxyHost(t *testing.T) {
+func TestDeleteProxyHosts(t *testing.T) {
 	const testToken = "test-jwt-token"
 
-	t.Run("successful delete when host exists", func(t *testing.T) {
+	t.Run("successful delete when host exists (multiple domains)", func(t *testing.T) {
 		deleteCalled := false
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("authorization")
@@ -128,7 +128,7 @@ func TestDeleteProxyHost(t *testing.T) {
 			if r.Method == http.MethodGet {
 				assert.Equal(t, "/api/nginx/proxy-hosts", r.URL.Path)
 				existingHosts := []ProxyHostReply{
-					{ID: 123, DomainNames: []string{"existing-host.com"}},
+					{ID: 123, DomainNames: []string{"host1.com", "host2.com"}},
 				}
 				w.WriteHeader(http.StatusOK)
 				json.NewEncoder(w).Encode(existingHosts)
@@ -149,7 +149,7 @@ func TestDeleteProxyHost(t *testing.T) {
 		client.headers["authorization"] = "Bearer " + testToken
 		defer server.Close()
 
-		err := client.DeleteProxyHost("existing-host.com")
+		err := client.DeleteProxyHosts([]string{"host2.com"})
 		assert.NoError(t, err)
 		assert.True(t, deleteCalled, "The DELETE endpoint was not called")
 	})
@@ -173,7 +173,7 @@ func TestDeleteProxyHost(t *testing.T) {
 		client.tokenExpireTime = time.Now().Add(24 * time.Hour)
 		defer server.Close()
 
-		err := client.DeleteProxyHost("non-existing-host.com")
+		err := client.DeleteProxyHosts([]string{"non-existing-host.com"})
 		assert.NoError(t, err)
 		assert.False(t, deleteCalled, "The DELETE endpoint was called unexpectedly")
 	})

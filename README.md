@@ -28,7 +28,9 @@ as local DNS/CNAME records in **Pi-Hole** (or DNS Rewrites in **AdGuard Home**) 
 PlugNPiN discovers services by scanning for Docker containers that have the following labels:
 
 - `plugNPiN.ip` - The IP address and port of the container (e.g., `192.168.1.100:8080`).
-- `plugNPiN.url` - The desired URL for the service (e.g., `my-service.local`).
+- `plugNPiN.url` - The desired URL for the service (e.g., `my-service.local`).  
+   Multiple domains are supported and should be comma-separated,  
+   for example `domain1.local,domain2.local`.
 
 The application operates in two complementary modes to keep your services synchronized:
 

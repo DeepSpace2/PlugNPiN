@@ -10,6 +10,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/moby/term v0.5.2
 	github.com/spf13/pflag v1.0.7
+	golang.org/x/sync v0.20.0
 	github.com/stretchr/testify v1.11.1
 )
 

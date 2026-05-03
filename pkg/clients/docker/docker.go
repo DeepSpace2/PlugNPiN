@@ -77,24 +77,26 @@ func GetParsedContainerName(container container.Summary) string {
 	return strings.Trim(container.Names[0], "/")
 }
 
-func GetValuesFromLabels(labels map[string]string) (ip, url string, port int, opts *ClientOptions, err error) {
+func GetValuesFromLabels(labels map[string]string) (ip string, urls []string, port int, opts *ClientOptions, err error) {
 	ip, ok := labels[IpLabel]
 	if !ok {
-		return "", "", 0, nil, &errors.NonExistingLabelsError{Msg: fmt.Sprintf("missing %s label", IpLabel)}
+		return "", nil, 0, nil, &errors.NonExistingLabelsError{Msg: fmt.Sprintf("missing %s label", IpLabel)}
 	}
-	url, ok = labels[UrlLabel]
+	urlsString, ok := labels[UrlLabel]
 	if !ok {
-		return "", "", 0, nil, &errors.NonExistingLabelsError{Msg: fmt.Sprintf("missing %s label", UrlLabel)}
+		return "", nil, 0, nil, &errors.NonExistingLabelsError{Msg: fmt.Sprintf("missing %s label", UrlLabel)}
 	}
+
+	urls = strings.Split(urlsString, ",")
 
 	splitIPAndPort := strings.Split(ip, ":")
 	if len(splitIPAndPort) == 1 {
-		return "", "", 0, nil, &errors.MalformedIPLabelError{Msg: fmt.Sprintf("missing ':' in value of '%v' label", IpLabel)}
+		return "", nil, 0, nil, &errors.MalformedIPLabelError{Msg: fmt.Sprintf("missing ':' in value of '%v' label", IpLabel)}
 	}
 	ip = splitIPAndPort[0]
 	port, err = strconv.Atoi(splitIPAndPort[1])
 	if err != nil {
-		return "", "", 0, nil, &errors.MalformedIPLabelError{
+		return "", nil, 0, nil, &errors.MalformedIPLabelError{
 			Msg: fmt.Sprintf("value after ':' in value of '%v' label must be an integer, got '%v'", IpLabel, splitIPAndPort[1]),
 		}
 	}
@@ -116,7 +118,7 @@ func GetValuesFromLabels(labels map[string]string) (ip, url string, port int, op
 	}
 	npmOptionsScheme = strings.ToLower(npmOptionsScheme)
 	if !slices.Contains([]string{"http", "https"}, npmOptionsScheme) {
-		return "", "", 0, nil, &errors.InvalidSchemeError{
+		return "", nil, 0, nil, &errors.InvalidSchemeError{
 			Msg: fmt.Sprintf("value of '%v' label must be one of 'http', 'https', got '%v'", npmOptionsSchemeLabel, npmOptionsScheme),
 		}
 	}
@@ -153,5 +155,5 @@ func GetValuesFromLabels(labels map[string]string) (ip, url string, port int, op
 		TargetDomain: adguardHomeOptionsTargetDomain,
 	}
 
-	return ip, url, port, opts, nil
+	return ip, urls, port, opts, nil
 }
