@@ -19,7 +19,7 @@
       
       
       <link rel="icon" href="assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
@@ -530,7 +530,9 @@ See <a href="configuration/#optional">Optional Environment Variables</a>.</p>
 <p>PlugNPiN discovers services by scanning for Docker containers that have the following labels:</p>
 <ul>
 <li><code>plugNPiN.ip</code> - The IP address and port of the container (e.g., <code>192.168.1.100:8080</code>).</li>
-<li><code>plugNPiN.url</code> - The desired URL for the service (e.g., <code>my-service.local</code>).</li>
+<li><code>plugNPiN.url</code> - The desired URL for the service (e.g., <code>my-service.local</code>).<br />
+  Multiple domains are supported and should be comma-separated,<br />
+   for example <code>domain1.local,domain2.local</code>.</li>
 </ul>
 <p>The application operates in two complementary modes to keep your services synchronized:</p>
 <ol>
