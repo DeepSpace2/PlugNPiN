@@ -209,10 +209,12 @@ func (p *Processor) handleNpm(host string, containerEvent docker.EventType, cont
 		}
 
 		if npmProxyHostOptions.CertificateName != "" {
-			npmCertificateID := p.npmClient.GetCertificateIDByName(npmProxyHostOptions.CertificateName)
-			if npmCertificateID != nil {
-				npmProxyHost.CertificateID = *npmCertificateID
+			npmCertificateID, err := p.npmClient.GetCertificateIDByName(npmProxyHostOptions.CertificateName)
+			if err != nil {
+				log.Error("Not creating Nginx Proxy Manager entry", "host", host, "container", containerName, "error", err)
+				return
 			}
+			npmProxyHost.CertificateID = npmCertificateID
 		}
 
 		log.Info("Adding entry to Nginx Proxy Manager", "host", host, "container", containerName)

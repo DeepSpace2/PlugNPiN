@@ -178,3 +178,40 @@ func TestDeleteProxyHosts(t *testing.T) {
 		assert.False(t, deleteCalled, "The DELETE endpoint was called unexpectedly")
 	})
 }
+
+func TestGetCertificateIDByName(t *testing.T) {
+	const testToken = "test-jwt-token"
+
+	t.Run("successful resolution", func(t *testing.T) {
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "/api/nginx/certificates", r.URL.Path)
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`[{"id": 1, "nice_name": "test-cert"}]`))
+		})
+
+		client, server := setupTestServer(handler)
+		client.token = testToken
+		client.tokenExpireTime = time.Now().Add(24 * time.Hour)
+		defer server.Close()
+
+		id, err := client.GetCertificateIDByName("test-cert")
+		assert.NoError(t, err)
+		assert.Equal(t, 1, id)
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`[]`))
+		})
+
+		client, server := setupTestServer(handler)
+		client.token = testToken
+		client.tokenExpireTime = time.Now().Add(24 * time.Hour)
+		defer server.Close()
+
+		_, err := client.GetCertificateIDByName("non-existent")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "does not exist")
+	})
+}

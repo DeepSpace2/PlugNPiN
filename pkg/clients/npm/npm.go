@@ -162,19 +162,19 @@ func (n *Client) getCertificates() (Certificates, error) {
 	return certificates, nil
 }
 
-func (n *Client) GetCertificateIDByName(name string) *int {
+func (n *Client) GetCertificateIDByName(name string) (int, error) {
 	certificates, err := n.getCertificates()
 	if err != nil {
 		log.Error("Failed to get certificates", "error", err)
-		return nil
+		return 0, err
 	}
 	for _, certificate := range certificates {
 		if certificate.NiceName == name {
-			return &certificate.ID
+			return certificate.ID, nil
 		}
 	}
 
-	return nil
+	return 0, fmt.Errorf("certificate with name %q does not exist", name)
 }
 
 func (n *Client) AddProxyHost(host ProxyHost) error {
