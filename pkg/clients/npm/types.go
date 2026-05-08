@@ -58,6 +58,7 @@ type Location struct {
 }
 
 type ProxyHost struct {
+	AccessListID          int        `json:"access_list_id"`
 	AdvancedConfig        string     `json:"advanced_config"`
 	AllowWebsocketUpgrade bool       `json:"allow_websocket_upgrade"`
 	BlockExploits         bool       `json:"block_exploits"`
@@ -87,7 +88,20 @@ type Certificates []struct {
 	Meta        Meta     `json:"meta"`
 }
 
+type AccessLists []struct {
+	CreatedOn      string `json:"created_on"`
+	ID             int    `json:"id"`
+	Meta           Meta   `json:"meta"`
+	ModifiedOn     string `json:"modified_on"`
+	Name           string `json:"name"`
+	OwnerUserID    int    `json:"owner_user_id"`
+	PassAuth       bool   `json:"pass_auth"`
+	ProxyHostCount int    `json:"proxy_host_count"`
+	SatisfyAny     bool   `json:"satisfy_any"`
+}
+
 type NpmProxyHostOptions struct {
+	AccessListName        string
 	AdvancedConfig        string
 	AllowWebsocketUpgrade bool
 	BlockExploits         bool

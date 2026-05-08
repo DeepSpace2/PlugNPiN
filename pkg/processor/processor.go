@@ -208,6 +208,15 @@ func (p *Processor) handleNpm(host string, containerEvent docker.EventType, cont
 			Meta:        npm.Meta{},
 		}
 
+		if npmProxyHostOptions.AccessListName != "" {
+			npmAccessListID, err := p.npmClient.GetAccessListIDByName(npmProxyHostOptions.AccessListName)
+			if err != nil {
+				log.Error("Not creating Nginx Proxy Manager entry", "host", host, "container", containerName, "error", err)
+				return
+			}
+			npmProxyHost.AccessListID = npmAccessListID
+		}
+
 		if npmProxyHostOptions.CertificateName != "" {
 			npmCertificateID, err := p.npmClient.GetCertificateIDByName(npmProxyHostOptions.CertificateName)
 			if err != nil {
