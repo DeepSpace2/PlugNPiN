@@ -31,6 +31,7 @@ const (
 	UrlLabel = "plugNPiN.url"
 
 	adguardHomeOptionsTargetDomainLabel = "plugNPiN.adguardHomeOptions.targetDomain"
+	npmOptionsAccessListNameLabel       = "plugNPiN.npmOptions.accessListName"
 	npmOptionsAdvancedConfigLabel       = "plugNPiN.npmOptions.advancedConfig"
 	npmOptionsBlockExploitsLabel        = "plugNPiN.npmOptions.blockExploits"
 	npmOptionsCachingEnabledLabel       = "plugNPiN.npmOptions.cachingEnabled"
@@ -125,12 +126,14 @@ func GetValuesFromLabels(labels map[string]string) (ip string, urls []string, po
 
 	npmOptionsAdvancedConfig := labels[npmOptionsAdvancedConfigLabel]
 	npmOptionsCertificateName := labels[npmOptionsCertificateNameLabel]
+	npmOptionsAccessListName := labels[npmOptionsAccessListNameLabel]
 	npmOptionsHTTP2Support, _ := strconv.ParseBool(labels[npmOptionsHTTP2SupportLabel])
 	npmOptionsHstsEnabled, _ := strconv.ParseBool(labels[npmOptionsHstsEnabledLabel])
 	npmOptionsHstsSubdomains, _ := strconv.ParseBool(labels[npmOptionsHstsSubdomainsLabel])
 	npmOptionsSslForced, _ := strconv.ParseBool(labels[npmOptionsSslForcedLabel])
 
 	opts.NPM = &npm.NpmProxyHostOptions{
+		AccessListName:        npmOptionsAccessListName,
 		AdvancedConfig:        npmOptionsAdvancedConfig,
 		AllowWebsocketUpgrade: npmOptionsWebsocketsSupport,
 		BlockExploits:         npmOptionsBlockExploits,

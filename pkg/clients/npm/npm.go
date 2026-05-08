@@ -177,6 +177,32 @@ func (n *Client) GetCertificateIDByName(name string) (int, error) {
 	return 0, fmt.Errorf("certificate with name %q does not exist", name)
 }
 
+func (n *Client) getAccessLists() (AccessLists, error) {
+	resp, statusCode, err := n.makeRequest(http.MethodGet, n.baseURL+"/nginx/access-lists", nil)
+	if err != nil || statusCode >= 400 {
+		return nil, err
+	}
+
+	var accessLists AccessLists
+	json.Unmarshal([]byte(resp), &accessLists)
+	return accessLists, nil
+}
+
+func (n *Client) GetAccessListIDByName(name string) (int, error) {
+	accessLists, err := n.getAccessLists()
+	if err != nil {
+		log.Error("Failed to get access lists", "error", err)
+		return 0, err
+	}
+	for _, accessList := range accessLists {
+		if accessList.Name == name {
+			return accessList.ID, nil
+		}
+	}
+
+	return 0, fmt.Errorf("access list with name %q does not exist", name)
+}
+
 func (n *Client) AddProxyHost(host ProxyHost) error {
 	existingProxyHosts, err := n.GetProxyHosts()
 	if err != nil {

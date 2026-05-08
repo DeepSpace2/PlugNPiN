@@ -215,3 +215,40 @@ func TestGetCertificateIDByName(t *testing.T) {
 		assert.Contains(t, err.Error(), "does not exist")
 	})
 }
+
+func TestGetAccessListIDByName(t *testing.T) {
+	const testToken = "test-jwt-token"
+
+	t.Run("successful resolution", func(t *testing.T) {
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "/api/nginx/access-lists", r.URL.Path)
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`[{"id": 2, "name": "test-access-list"}]`))
+		})
+
+		client, server := setupTestServer(handler)
+		client.token = testToken
+		client.tokenExpireTime = time.Now().Add(24 * time.Hour)
+		defer server.Close()
+
+		id, err := client.GetAccessListIDByName("test-access-list")
+		assert.NoError(t, err)
+		assert.Equal(t, 2, id)
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`[]`))
+		})
+
+		client, server := setupTestServer(handler)
+		client.token = testToken
+		client.tokenExpireTime = time.Now().Add(24 * time.Hour)
+		defer server.Close()
+
+		_, err := client.GetAccessListIDByName("non-existent")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "does not exist")
+	})
+}
