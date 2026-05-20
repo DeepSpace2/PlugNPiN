@@ -8,8 +8,12 @@ nav:
   - Configuration: configuration.md
   - Usage: usage.md
   - Contributing: contributing.md
+extra_css:
+  - css/theme.css
 theme:
   name: material
+  logo: assets/logo_icon.svg
+  favicon: assets/logo_icon.svg
   custom_dir: docs/theme/overrides
   icon:
     repo: fontawesome/brands/github
@@ -33,6 +37,8 @@ theme:
 
     # Palette toggle for light mode
     - scheme: default
+      primary: custom
+      accent: custom
       media: "(prefers-color-scheme: light)"
       toggle:
         icon: material/weather-night
@@ -40,6 +46,8 @@ theme:
 
     # Palette toggle for dark mode
     - scheme: slate
+      primary: custom
+      accent: custom
       media: "(prefers-color-scheme: dark)"
       toggle:
         icon: material/weather-sunny
