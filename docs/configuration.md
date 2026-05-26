@@ -31,11 +31,17 @@
 
 Use the following labels on your containers to enable specific features
 
+### General Options
+
+| Label {: style="width:45%"} | Description | Default {: style="width:10%"} | Notes |
+|---|---|---|---|
+| `plugNPiN.options.createOnHealthy` | If set to `true`, PlugNPiN will wait for the container to become **healthy** before creating entries | `false` | **This option requires the container to have a [Docker Healthcheck](https://docs.docker.com/engine/reference/builder/#healthcheck){: target="_blank" } defined. If no healthcheck is found, an error will be logged and no entries will be created** |
+
 ### AdGuard Home
 
-| Label {: style="width:45%"} | Description | Default {: style="width:10%"} |
-|---|---|---|
-| `plugNPiN.adguardHomeOptions.targetDomain` | If provided, a CNAME DNS Rewrite will be created  |  |
+| Label {: style="width:45%"} | Description | Default {: style="width:10%"} | Notes |
+|---|---|---|---|
+| `plugNPiN.adguardHomeOptions.targetDomain` | If provided, a CNAME DNS Rewrite will be created | | |
 
 ### Nginx Proxy Manager
 
@@ -56,8 +62,8 @@ Use the following labels on your containers to enable specific features
 
 ### Pi-Hole
 
-| Label {: style="width:35%"} | Description | Default {: style="width:10%"} |
-|---|---|---|
-| `plugNPiN.piholeOptions.targetDomain` | If provided, a CNAME record will be created **instead** of a DNS record |  |
+| Label {: style="width:35%"} | Description | Default {: style="width:10%"} | Notes |
+|---|---|---|---|
+| `plugNPiN.piholeOptions.targetDomain` | If provided, a CNAME record will be created **instead** of a DNS record | | |
 
 *[NPM]: Nginx Proxy Manager

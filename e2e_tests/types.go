@@ -11,6 +11,7 @@ type Container struct {
 	cmd         []string
 	env         []string
 	exposedPort nat.Port
+	healthcheck *containerApi.HealthConfig
 	hostConfig  *containerApi.HostConfig
 	id          string
 	image       string

@@ -4,8 +4,10 @@ package e2e_tests
 
 import (
 	"context"
+	"fmt"
 	"os"
 
+	containerApi "github.com/docker/docker/api/types/container"
 	imageApi "github.com/docker/docker/api/types/image"
 	dockerCliClient "github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/jsonmessage"
@@ -24,5 +26,23 @@ func pullImage(ctx context.Context, dockerCli *dockerCliClient.Client, img strin
 	defer reader.Close()
 	termFd, isTerm := term.GetFdInfo(os.Stderr)
 	jsonmessage.DisplayJSONMessagesStream(reader, os.Stderr, termFd, isTerm, nil)
+	return nil
+}
+
+func markContainerHealthy(ctx context.Context, dockerCli *dockerCliClient.Client, containerID string) error {
+	execConfig := containerApi.ExecOptions{
+		Cmd: []string{"touch", "/tmp/healthy"},
+	}
+
+	execCreateResp, err := dockerCli.ContainerExecCreate(ctx, containerID, execConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create exec: %w", err)
+	}
+
+	err = dockerCli.ContainerExecStart(ctx, execCreateResp.ID, containerApi.ExecStartOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to start exec: %w", err)
+	}
+
 	return nil
 }

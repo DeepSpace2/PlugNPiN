@@ -74,6 +74,7 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 		expectedNpmOptionsScheme               string
 		expectedNpmOptionsWebsocketsSupport    bool
 		expectedPiholeOptionsTargetDomain      string
+		expectedCreateOnHealthy                bool
 	}{
 		{
 			name: "Happy path",
@@ -291,12 +292,46 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 				},
 			},
 			expectedIP:                             "192.168.1.10",
-			expectedURLs:                            []string{"my-service.example.com"},
+			expectedURLs:                           []string{"my-service.example.com"},
 			expectedPort:                           8080,
 			expectedErr:                            nil,
 			expectedNpmOptionsScheme:               "http",
 			expectedNpmOptionsBlockExploits:        true,
 			expectedAdguardHomeOptionsTargetDomain: "custom.domain.adguard",
+		},
+		{
+			name: "General options - CreateOnHealthy true",
+			container: container.Summary{
+				Labels: map[string]string{
+					IpLabel:                            "192.168.1.10:8080",
+					UrlLabel:                           "my-service.example.com",
+					GeneralOptionsCreateOnHealthyLabel: "true",
+				},
+			},
+			expectedIP:                      "192.168.1.10",
+			expectedURLs:                    []string{"my-service.example.com"},
+			expectedPort:                    8080,
+			expectedErr:                     nil,
+			expectedNpmOptionsScheme:        "http",
+			expectedNpmOptionsBlockExploits: true,
+			expectedCreateOnHealthy:         true,
+		},
+		{
+			name: "General options - CreateOnHealthy false",
+			container: container.Summary{
+				Labels: map[string]string{
+					IpLabel:                            "192.168.1.10:8080",
+					UrlLabel:                           "my-service.example.com",
+					GeneralOptionsCreateOnHealthyLabel: "false",
+				},
+			},
+			expectedIP:                      "192.168.1.10",
+			expectedURLs:                    []string{"my-service.example.com"},
+			expectedPort:                    8080,
+			expectedErr:                     nil,
+			expectedNpmOptionsScheme:        "http",
+			expectedNpmOptionsBlockExploits: true,
+			expectedCreateOnHealthy:         false,
 		},
 	}
 
@@ -313,12 +348,14 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 				assert.NotNil(t, opts.NPM)
 				assert.NotNil(t, opts.Pihole)
 				assert.NotNil(t, opts.AdguardHome)
+				assert.NotNil(t, opts.GeneralOptions)
 				assert.Equal(t, tc.expectedNpmOptionsBlockExploits, opts.NPM.BlockExploits)
 				assert.Equal(t, tc.expectedNpmOptionsCachingEnabled, opts.NPM.CachingEnabled)
 				assert.Equal(t, tc.expectedNpmOptionsScheme, opts.NPM.ForwardScheme)
 				assert.Equal(t, tc.expectedNpmOptionsWebsocketsSupport, opts.NPM.AllowWebsocketUpgrade)
 				assert.Equal(t, tc.expectedPiholeOptionsTargetDomain, opts.Pihole.TargetDomain)
 				assert.Equal(t, tc.expectedAdguardHomeOptionsTargetDomain, opts.AdguardHome.TargetDomain)
+				assert.Equal(t, tc.expectedCreateOnHealthy, opts.GeneralOptions.CreateOnHealthy)
 			} else {
 				assert.Nil(t, opts)
 			}
