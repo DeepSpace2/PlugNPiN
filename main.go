@@ -18,6 +18,9 @@ import (
 var log = logging.GetLogger()
 
 func main() {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
 	cliFlags := cli.ParseFlags()
 
 	conf, err := config.GetEnvVars()
@@ -45,36 +48,22 @@ func main() {
 
 	if conf.RunInterval == 0 {
 		log.Info("RUN_INTERVAL is 0, will run once")
-		proc.RunOnce()
+		proc.RunOnce(ctx)
 		return
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
 	var wg sync.WaitGroup
 
-	wg.Add(2)
-
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		proc.ListenForEvents(ctx)
-	}()
+	})
 
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		proc.RunScheduled(ctx, conf.RunInterval)
-	}()
+	})
 
-	shutdown(cancel, &wg)
-}
-
-func shutdown(cancelCtx context.CancelFunc, wg *sync.WaitGroup) {
-	shutdownChan := make(chan os.Signal, 1)
-	signal.Notify(shutdownChan, syscall.SIGINT, syscall.SIGTERM)
-
-	<-shutdownChan
-
+	<-ctx.Done()
 	log.Info("Shutdown signal received, exiting gracefully.")
-	cancelCtx()
 	wg.Wait()
 	log.Info("Shutdown complete.")
 }

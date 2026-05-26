@@ -37,7 +37,7 @@ func New(dockerClients map[string]*docker.Client, adguardHomeClient *adguardhome
 }
 
 func (p *Processor) RunScheduled(ctx context.Context, interval time.Duration) {
-	p.RunOnce()
+	p.RunOnce(ctx)
 
 	if interval == 0 {
 		return
@@ -51,7 +51,7 @@ func (p *Processor) RunScheduled(ctx context.Context, interval time.Duration) {
 	for {
 		select {
 		case <-ticker.C:
-			p.RunOnce()
+			p.RunOnce(ctx)
 			log.Info(fmt.Sprintf("Will run again in %v. Press Ctrl+C to exit.", interval))
 		case <-ctx.Done():
 			return
@@ -61,19 +61,19 @@ func (p *Processor) RunScheduled(ctx context.Context, interval time.Duration) {
 
 func (p *Processor) ListenForEvents(ctx context.Context) {
 	for _, client := range p.dockerClients {
-		go func(c *docker.Client) {
-			log.Info("Starting event listener", "host", c.DisplayHost)
-			err := docker.Listen(ctx, c, func(event events.Message) {
-				p.handleDockerEvent(event, c.DisplayHost)
+		go func(client *docker.Client) {
+			log.Info("Starting event listener", "host", client.DisplayHost)
+			err := docker.Listen(ctx, client, func(event events.Message) {
+				p.handleDockerEvent(ctx, event, client)
 			})
 			if err != nil && err != context.Canceled {
-				log.Error("Docker event listener stopped", "host", c.DisplayHost, "error", err)
+				log.Error("Docker event listener stopped", "host", client.DisplayHost, "error", err)
 			}
 		}(client)
 	}
 }
 
-func (p *Processor) RunOnce() {
+func (p *Processor) RunOnce(ctx context.Context) {
 	for _, dockerClient := range p.dockerClients {
 		containers, err := dockerClient.GetRelevantContainers()
 		if err != nil {
@@ -84,13 +84,13 @@ func (p *Processor) RunOnce() {
 		log.Info(fmt.Sprintf("Found %v containers", len(containers)), "host", dockerClient.DisplayHost)
 
 		for _, container := range containers {
-			p.preprocessContainer(container, dockerClient.DisplayHost)
+			p.preprocessContainer(ctx, container, dockerClient)
 		}
 	}
 	log.Info("Done")
 }
 
-func (p *Processor) preprocessContainer(container container.Summary, host string) {
+func (p *Processor) preprocessContainer(ctx context.Context, container container.Summary, dockerClient *docker.Client) {
 	parsedContainerName := docker.GetParsedContainerName(container)
 
 	ip, urls, port, opts, err := docker.GetValuesFromLabels(container.Labels)
@@ -103,13 +103,13 @@ func (p *Processor) preprocessContainer(container container.Summary, host string
 		}
 		return
 	}
-	p.processContainer(docker.ContainerEvent.Start, host, parsedContainerName, ip, urls, port, opts)
+	p.processContainer(ctx, events.ActionStart, container.ID, dockerClient, parsedContainerName, ip, urls, port, opts)
 }
 
-func (p *Processor) handleDockerEvent(event events.Message, host string) {
+func (p *Processor) handleDockerEvent(ctx context.Context, event events.Message, dockerClient *docker.Client) {
 	containerName, ok := event.Actor.Attributes["name"]
 	if !ok {
-		log.Info(fmt.Sprintf("Skipping event for container with no name: %v", event.Actor.ID), "host", host)
+		log.Info(fmt.Sprintf("Skipping event for container with no name: %v", event.Actor.ID), "host", dockerClient.DisplayHost)
 		return
 	}
 
@@ -120,15 +120,18 @@ func (p *Processor) handleDockerEvent(event events.Message, host string) {
 			// This is not an error, it just means the container is not relevant for us
 			return
 		case *errors.MalformedIPLabelError, *errors.InvalidSchemeError:
-			log.Error("Failed to handle event for container", "host", host, "container", containerName, "error", err)
+			log.Error("Failed to handle event for container", "host", dockerClient.DisplayHost, "container", containerName, "error", err)
 		}
 		return
 	}
-	containerEvent, _ := docker.ContainerEvent.ParseString(string(event.Action))
-	p.processContainer(containerEvent, host, containerName, ip, urls, port, opts)
+	p.processContainer(ctx, event.Action, event.Actor.ID, dockerClient, containerName, ip, urls, port, opts)
 }
 
-func (p *Processor) handleAdguardHome(host string, containerEvent docker.EventType, containerName string, urls []string, ip string, adguardHomeOptions adguardhome.AdguardHomeOptions) {
+func (p *Processor) shouldSkip(generalOptions *docker.GeneralOptions, event events.Action) bool {
+	return (event == events.ActionStart && generalOptions.CreateOnHealthy) || (event == events.ActionHealthStatusHealthy && !generalOptions.CreateOnHealthy)
+}
+
+func (p *Processor) handleAdguardHome(host string, containerEvent events.Action, containerName string, urls []string, ip string, adguardHomeOptions adguardhome.AdguardHomeOptions, generalOptions *docker.GeneralOptions) {
 	if p.adguardHomeClient != nil {
 		if adguardHomeOptions.TargetDomain != "" {
 			// quick "workaround" for the fact that adguard unifies "local DNS records" and "CNAME records"
@@ -136,13 +139,13 @@ func (p *Processor) handleAdguardHome(host string, containerEvent docker.EventTy
 		}
 
 		switch containerEvent {
-		case docker.ContainerEvent.Start:
+		case events.ActionStart, events.ActionHealthStatusHealthy:
 			log.Info("Adding a DNS rewrite to AdGuard Home", "host", host, "container", containerName, "domains", urls, "answer", ip)
 			err := p.adguardHomeClient.AddDnsRewrites(urls, ip)
 			if err != nil {
 				log.Error("Failed to add a DNS rewrite to AdGuard Home", "host", host, "container", containerName, "domains", urls, "answer", ip, "error", err)
 			}
-		case docker.ContainerEvent.Die:
+		case events.ActionDie:
 			log.Info("Deleting DNS rewrite from AdGuard Home", "host", host, "container", containerName, "domains", urls)
 			err := p.adguardHomeClient.DeleteDnsRewrites(urls, ip)
 			if err != nil {
@@ -152,10 +155,10 @@ func (p *Processor) handleAdguardHome(host string, containerEvent docker.EventTy
 	}
 }
 
-func (p *Processor) handlePiHole(host string, containerEvent docker.EventType, containerName string, urls []string, ip string, piholeOptions pihole.PiHoleOptions) {
+func (p *Processor) handlePiHole(host string, containerEvent events.Action, containerName string, urls []string, ip string, piholeOptions pihole.PiHoleOptions, generalOptions *docker.GeneralOptions) {
 	if p.piholeClient != nil {
 		switch containerEvent {
-		case docker.ContainerEvent.Start:
+		case events.ActionStart, events.ActionHealthStatusHealthy:
 			if piholeOptions.TargetDomain == "" {
 				log.Info("Adding local DNS records to Pi-Hole", "host", host, "container", containerName, "urls", urls, "ip", ip)
 				err := p.piholeClient.AddDnsRecords(urls, ip)
@@ -169,7 +172,7 @@ func (p *Processor) handlePiHole(host string, containerEvent docker.EventType, c
 					log.Error("Failed to add local CNAME records to Pi-Hole", "host", host, "container", containerName, "urls", urls, "targetDomain", piholeOptions.TargetDomain, "error", err)
 				}
 			}
-		case docker.ContainerEvent.Die:
+		case events.ActionDie:
 			if piholeOptions.TargetDomain == "" {
 				log.Info("Deleting local DNS records from Pi-Hole", "host", host, "container", containerName, "urls", urls)
 				err := p.piholeClient.DeleteDnsRecords(urls)
@@ -187,9 +190,9 @@ func (p *Processor) handlePiHole(host string, containerEvent docker.EventType, c
 	}
 }
 
-func (p *Processor) handleNpm(host string, containerEvent docker.EventType, containerName string, urls []string, ip string, port int, npmProxyHostOptions npm.NpmProxyHostOptions) {
+func (p *Processor) handleNpm(host string, containerEvent events.Action, containerName string, urls []string, ip string, port int, npmProxyHostOptions npm.NpmProxyHostOptions, generalOptions *docker.GeneralOptions) {
 	switch containerEvent {
-	case docker.ContainerEvent.Start:
+	case events.ActionStart, events.ActionHealthStatusHealthy:
 		npmProxyHost := npm.ProxyHost{
 			AdvancedConfig:        npmProxyHostOptions.AdvancedConfig,
 			AllowWebsocketUpgrade: npmProxyHostOptions.AllowWebsocketUpgrade,
@@ -232,7 +235,7 @@ func (p *Processor) handleNpm(host string, containerEvent docker.EventType, cont
 		if err != nil {
 			log.Error("Failed to add entry to Nginx Proxy Manager", "host", host, "container", containerName, "error", err)
 		}
-	case docker.ContainerEvent.Die:
+	case events.ActionDie:
 		log.Info("Deleting entry from Nginx Proxy Manager", "host", host, "container", containerName)
 		err := p.npmClient.DeleteProxyHosts(urls)
 		if err != nil {
@@ -241,27 +244,54 @@ func (p *Processor) handleNpm(host string, containerEvent docker.EventType, cont
 	}
 }
 
-func (p *Processor) processContainer(containerEvent docker.EventType, host, containerName, ip string, urls []string, port int, opts *docker.ClientOptions) {
+func (p *Processor) processContainer(ctx context.Context, containerEvent events.Action, containerID string, dockerClient *docker.Client, containerName, ip string, urls []string, port int, opts *docker.ClientOptions) {
+	if opts.GeneralOptions.CreateOnHealthy && (containerEvent == events.ActionStart || containerEvent == events.ActionHealthStatusHealthy) {
+		containerInspectResponse, err := dockerClient.InspectContainer(ctx, containerID)
+		if err != nil {
+			log.Error("Failed to inspect container", "host", dockerClient.DisplayHost, "container", containerName, "error", err)
+			return
+		}
+
+		if !dockerClient.HasHealthcheck(containerInspectResponse) {
+			log.Error("Container has 'createOnHealthy' enabled but NO healthcheck is defined. Entries will NOT be created.", "host", dockerClient.DisplayHost, "container", containerName)
+			return
+		}
+
+		// If we are in the initial sync (which uses synthetic Start events) but the
+		// container is already healthy, we "upgrade" the event to Healthy.
+		// This ensures shouldSkip() allows it to proceed immediately.
+		if containerEvent == events.ActionStart && dockerClient.IsHealthy(containerInspectResponse) {
+			containerEvent = events.ActionHealthStatusHealthy
+		}
+	}
+
+	if p.shouldSkip(&opts.GeneralOptions, containerEvent) {
+		if containerEvent == events.ActionStart {
+			log.Info("Container is not healthy yet. Waiting for container to be healthy before creating entries.", "host", dockerClient.DisplayHost, "container", containerName)
+		}
+		return
+	}
+
 	msg := "Handling container"
 
 	if p.dryRun {
 		msg += ". In dry run mode, not doing anything."
-		log.Info(msg, "host", host, "container", containerName, "ip", ip, "port", port, "urls", urls)
+		log.Info(msg, "host", dockerClient.DisplayHost, "container", containerName, "ip", ip, "port", port, "urls", urls)
 		return
 	}
 
-	log.Info(msg, "host", host, "container", containerName, "ip", ip, "port", port, "urls", urls)
+	log.Info(msg, "host", dockerClient.DisplayHost, "container", containerName, "ip", ip, "port", port, "urls", urls)
 
 	if p.npmClient != nil {
 		npmHost := p.npmClient.GetIP()
 		if opts.AdguardHome != nil {
-			p.handleAdguardHome(host, containerEvent, containerName, urls, npmHost, *opts.AdguardHome)
+			p.handleAdguardHome(dockerClient.DisplayHost, containerEvent, containerName, urls, npmHost, *opts.AdguardHome, &opts.GeneralOptions)
 		}
 		if opts.Pihole != nil {
-			p.handlePiHole(host, containerEvent, containerName, urls, npmHost, *opts.Pihole)
+			p.handlePiHole(dockerClient.DisplayHost, containerEvent, containerName, urls, npmHost, *opts.Pihole, &opts.GeneralOptions)
 		}
 		if opts.NPM != nil {
-			p.handleNpm(host, containerEvent, containerName, urls, ip, port, *opts.NPM)
+			p.handleNpm(dockerClient.DisplayHost, containerEvent, containerName, urls, ip, port, *opts.NPM, &opts.GeneralOptions)
 		}
 	}
 }

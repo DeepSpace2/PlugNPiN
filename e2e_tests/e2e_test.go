@@ -50,7 +50,71 @@ const (
 	testContainerName  = "plugnpin-e2e-test-testcontainer"
 )
 
-var logger = logging.GetLogger()
+var (
+	logger                 = logging.GetLogger()
+	globalImagesToRemove   = make(map[string]struct{})
+	globalImagesToRemoveMu sync.Mutex
+)
+
+func TestMain(m *testing.M) {
+	code := m.Run()
+
+	ctx := context.Background()
+	dockerCli, err := dockerApi.NewClientWithOpts(dockerApi.FromEnv)
+	if err == nil {
+		logger.Info("Performing global image cleanup")
+		for image := range globalImagesToRemove {
+			dockerCli.ImageRemove(ctx, image, imageApi.RemoveOptions{
+				Force: true,
+			})
+		}
+	}
+
+	os.Exit(code)
+}
+
+func getInfraContainers(conf *config, workingDir string) []Container {
+	return []Container{
+		{
+			image: fmt.Sprintf("%s:%s", npmImage, conf.NpmTag),
+			name:  npmContainerName,
+			hostConfig: &containerApi.HostConfig{
+				Binds: []string{
+					fmt.Sprintf("%s/npm-data/data:/data", workingDir),
+					fmt.Sprintf("%s/npm-data/letsencrypt:/etc/letsencrypt", workingDir),
+				},
+				PortBindings: nat.PortMap{
+					nat.Port("81/tcp"): []nat.PortBinding{{HostIP: "0.0.0.0", HostPort: ""}},
+				},
+			},
+			exposedPort: nat.Port("81/tcp"),
+		},
+		{
+			env:   []string{`FTLCONF_webserver_api_password=password`},
+			image: fmt.Sprintf("%s:%s", piholeImage, conf.PiholeTag),
+			name:  piholeContainerName,
+			hostConfig: &containerApi.HostConfig{
+				PortBindings: nat.PortMap{
+					nat.Port("80/tcp"): []nat.PortBinding{{HostIP: "0.0.0.0", HostPort: ""}},
+				},
+			},
+			exposedPort: nat.Port("80/tcp"),
+		},
+		{
+			image: fmt.Sprintf("%s:%s", adguardHomeImage, conf.AdguardHomeTag),
+			name:  adguardHomeContainerName,
+			hostConfig: &containerApi.HostConfig{
+				PortBindings: nat.PortMap{
+					nat.Port("3000/tcp"): []nat.PortBinding{{HostIP: "0.0.0.0", HostPort: ""}},
+				},
+				Binds: []string{
+					fmt.Sprintf("%s/adguardhome-data/conf:/opt/adguardhome/conf", workingDir),
+				},
+			},
+			exposedPort: nat.Port("3000/tcp"),
+		},
+	}
+}
 
 func getEnvVars() (*config, error) {
 	err := godotenv.Load(".env.test")
@@ -73,12 +137,17 @@ func pullRequiredImages(t *testing.T, ctx context.Context, dockerApi *dockerApi.
 			if err != nil {
 				return fmt.Errorf("failed to pull image %s: %w", containers[i].image, err)
 			}
+
+			globalImagesToRemoveMu.Lock()
+			globalImagesToRemove[containers[i].image] = struct{}{}
+			globalImagesToRemoveMu.Unlock()
+
 			return nil
 		})
 	}
 
 	if err := g.Wait(); err != nil {
-		cleanup(t, ctx, dockerApi, containers, nil)
+		cleanup(t, dockerApi, containers, nil)
 		t.Fatal(err)
 	}
 }
@@ -91,6 +160,7 @@ func startRequiredContainers(t *testing.T, ctx context.Context, dockerCli *docke
 			cfg := &containerApi.Config{
 				Cmd:          containers[i].cmd,
 				Env:          containers[i].env,
+				Healthcheck:  containers[i].healthcheck,
 				Image:        containers[i].image,
 				Labels:       containers[i].labels,
 				ExposedPorts: make(nat.PortSet),
@@ -117,16 +187,17 @@ func startRequiredContainers(t *testing.T, ctx context.Context, dockerCli *docke
 			}
 			containers[i].id = response.ID
 			logger.Info("container started", "name", containers[i].name, "id", containers[i].id)
-			err = dockerCli.ContainerStart(ctx, containers[i].id, containerApi.StartOptions{})
+			err = dockerCli.ContainerStart(gCtx, containers[i].id, containerApi.StartOptions{})
 			if err != nil {
 				return fmt.Errorf("failed to start container %s: %v", containers[i].name, err)
 			}
 
 			if containers[i].exposedPort != "" {
-				containerInfo, err := dockerCli.ContainerInspect(ctx, containers[i].id)
+				containerInfo, err := dockerCli.ContainerInspect(gCtx, containers[i].id)
 				if err != nil {
 					return fmt.Errorf("failed to inspect container %s: %v", containers[i].name, err)
 				}
+
 				bindings := containerInfo.NetworkSettings.Ports[containers[i].exposedPort]
 				if len(bindings) > 0 {
 					hostPort := bindings[0].HostPort
@@ -138,7 +209,7 @@ func startRequiredContainers(t *testing.T, ctx context.Context, dockerCli *docke
 		})
 	}
 	if err := g.Wait(); err != nil {
-		cleanup(t, ctx, dockerCli, containers, nil)
+		cleanup(t, dockerCli, containers, nil)
 		t.Fatal(err)
 	}
 }
@@ -213,8 +284,11 @@ func setup(t *testing.T, ctx context.Context, dockerCli *dockerApi.Client, conta
 	return dockerClient, piholeClient, npmClient, adguardHomeClient
 }
 
-func cleanup(t *testing.T, ctx context.Context, dockerCli *dockerApi.Client, containers []Container, npmClient *npm.Client) {
+func cleanup(t *testing.T, dockerCli *dockerApi.Client, containers []Container, npmClient *npm.Client) {
 	logger.Info("In cleanup")
+
+	// Use background context for cleanup to ensure it completes even if test is canceled
+	ctx := context.Background()
 
 	if npmClient != nil {
 		npmProxyHosts, err := npmClient.GetProxyHosts()
@@ -222,10 +296,8 @@ func cleanup(t *testing.T, ctx context.Context, dockerCli *dockerApi.Client, con
 			npmClient.DeleteProxyHosts(slices.Collect(maps.Keys(npmProxyHosts)))
 		}
 	}
-	imagesToRemove := make(map[string]struct{})
 	var wg sync.WaitGroup
 	for i := range containers {
-		imagesToRemove[containers[i].image] = struct{}{}
 		wg.Go(func() {
 			if containers[i].id == "" {
 				return
@@ -239,15 +311,6 @@ func cleanup(t *testing.T, ctx context.Context, dockerCli *dockerApi.Client, con
 		})
 	}
 	wg.Wait()
-
-	for image := range imagesToRemove {
-		_, err := dockerCli.ImageRemove(ctx, image, imageApi.RemoveOptions{
-			Force: true,
-		})
-		if err != nil {
-			logger.Error("Could not remove image", "image", image, "error", err)
-		}
-	}
 }
 
 func TestE2E(t *testing.T) {
@@ -269,45 +332,8 @@ func TestE2E(t *testing.T) {
 		t.Fatalf("Failed to get working directory: %v", err)
 	}
 
-	containers := []Container{
-		{
-			image: fmt.Sprintf("%s:%s", npmImage, conf.NpmTag),
-			name:  npmContainerName,
-			hostConfig: &containerApi.HostConfig{
-				Binds: []string{
-					fmt.Sprintf("%s/npm-data/data:/data", workingDir),
-					fmt.Sprintf("%s/npm-data/letsencrypt:/etc/letsencrypt", workingDir),
-				},
-				PortBindings: nat.PortMap{
-					nat.Port("81/tcp"): []nat.PortBinding{{HostIP: "0.0.0.0", HostPort: ""}},
-				},
-			},
-			exposedPort: nat.Port("81/tcp"),
-		},
-		{
-			env:   []string{`FTLCONF_webserver_api_password=password`},
-			image: fmt.Sprintf("%s:%s", piholeImage, conf.PiholeTag),
-			name:  piholeContainerName,
-			hostConfig: &containerApi.HostConfig{
-				PortBindings: nat.PortMap{
-					nat.Port("80/tcp"): []nat.PortBinding{{HostIP: "0.0.0.0", HostPort: ""}},
-				},
-			},
-			exposedPort: nat.Port("80/tcp"),
-		},
-		{
-			image: fmt.Sprintf("%s:%s", adguardHomeImage, conf.AdguardHomeTag),
-			name:  adguardHomeContainerName,
-			hostConfig: &containerApi.HostConfig{
-				PortBindings: nat.PortMap{
-					nat.Port("3000/tcp"): []nat.PortBinding{{HostIP: "0.0.0.0", HostPort: ""}},
-				},
-				Binds: []string{
-					fmt.Sprintf("%s/adguardhome-data/conf:/opt/adguardhome/conf", workingDir),
-				},
-			},
-			exposedPort: nat.Port("3000/tcp"),
-		},
+	infraContainers := getInfraContainers(conf, workingDir)
+	testContainers := []Container{
 		{
 			image: testContainerImage,
 			cmd:   []string{"tail", "-f", "/dev/null"},
@@ -329,11 +355,12 @@ func TestE2E(t *testing.T) {
 			hostConfig: &containerApi.HostConfig{},
 		},
 	}
+	containers := append(infraContainers, testContainers...)
 
 	dockerClient, piholeClient, npmClient, adguardHomeClient := setup(t, ctx, dockerCli, containers)
 
 	t.Cleanup(func() {
-		cleanup(t, ctx, dockerCli, containers, npmClient)
+		cleanup(t, dockerCli, containers, npmClient)
 	})
 
 	time.Sleep(2 * time.Second)
@@ -346,7 +373,7 @@ func TestE2E(t *testing.T) {
 		false,
 	)
 
-	proc.RunOnce()
+	proc.RunOnce(ctx)
 
 	piholeDnsRecords, err := piholeClient.GetDnsRecords()
 	if err != nil {
@@ -406,4 +433,198 @@ func TestE2E(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestE2E_CreateOnHealthy(t *testing.T) {
+	logger.Info("In TestE2E_CreateOnHealthy")
+
+	conf, err := getEnvVars()
+	if err != nil {
+		t.Fatalf("Failed to load e2e test env vars: %v", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	dockerCli, err := dockerApi.NewClientWithOpts(dockerApi.FromEnv)
+	if err != nil {
+		t.Fatalf("Failed to create docker api client: %v", err)
+	}
+
+	workingDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Failed to get working directory: %v", err)
+	}
+
+	infraContainers := getInfraContainers(conf, workingDir)
+
+	dockerClient, piholeClient, npmClient, adguardHomeClient := setup(t, ctx, dockerCli, infraContainers)
+
+	t.Cleanup(func() {
+		cleanup(t, dockerCli, infraContainers, npmClient)
+	})
+
+	proc := processor.New(
+		map[string]*docker.Client{dockerClient.Host: dockerClient},
+		adguardHomeClient,
+		piholeClient,
+		npmClient,
+		false,
+	)
+
+	var wg sync.WaitGroup
+	wg.Go(func() {
+		proc.ListenForEvents(ctx)
+	})
+
+	testURL := "healthy-test.home"
+	testContainers := []Container{
+		{
+			image: testContainerImage,
+			cmd:   []string{"tail", "-f", "/dev/null"},
+			labels: map[string]string{
+				docker.IpLabel:  "3.3.3.3:8080",
+				docker.UrlLabel: testURL,
+				docker.GeneralOptionsCreateOnHealthyLabel: "true",
+			},
+			name:       testContainerName + "-healthy-trigger",
+			hostConfig: &containerApi.HostConfig{},
+			healthcheck: &containerApi.HealthConfig{
+				Test:     []string{"CMD-SHELL", "stat /tmp/healthy || exit 1"},
+				Interval: 1 * time.Second,
+				Retries:  30,
+			},
+		},
+	}
+
+	err = pullImage(ctx, dockerCli, testContainers[0].image)
+	require.NoError(t, err, "Failed to pull test container image")
+	startRequiredContainers(t, ctx, dockerCli, testContainers)
+
+	t.Cleanup(func() {
+		dockerCli.ContainerRemove(context.Background(), testContainers[0].id, containerApi.RemoveOptions{Force: true})
+	})
+
+	// Assert entry DOES NOT exist while unhealthy
+	logger.Info("Asserting entry does not exist while container is unhealthy")
+	require.Never(t, func() bool {
+		npmProxyHosts, _ := npmClient.GetProxyHosts()
+		_, exists := npmProxyHosts[testURL]
+		return exists
+	}, 3*time.Second, 1*time.Second, "Entry should not be created for unhealthy container")
+
+	// Trigger healthy state
+	logger.Info("Triggering healthy state")
+	err = markContainerHealthy(ctx, dockerCli, testContainers[0].id)
+	require.NoError(t, err)
+
+	// Wait for Docker to mark it healthy
+	logger.Info("Waiting for Docker to mark container as healthy")
+	require.Eventually(t, func() bool {
+		inspect, err := dockerCli.ContainerInspect(ctx, testContainers[0].id)
+		if err != nil {
+			return false
+		}
+		return inspect.State.Health != nil && inspect.State.Health.Status == "healthy"
+	}, 15*time.Second, 1*time.Second, "Container should become healthy")
+
+	// Assert entry exists
+	logger.Info("Asserting entry now exists after container became healthy")
+	require.Eventually(t, func() bool {
+		npmProxyHosts, _ := npmClient.GetProxyHosts()
+		_, exists := npmProxyHosts[testURL]
+		return exists
+	}, 10*time.Second, 1*time.Second, "Entry should be created after container becomes healthy")
+
+	// Assert entry is REMOVED on Die
+	logger.Info("Stopping container and asserting entry removal")
+	err = dockerCli.ContainerStop(ctx, testContainers[0].id, containerApi.StopOptions{})
+	require.NoError(t, err)
+
+	require.Eventually(t, func() bool {
+		npmProxyHosts, _ := npmClient.GetProxyHosts()
+		_, exists := npmProxyHosts[testURL]
+		return !exists
+	}, 10*time.Second, 1*time.Second, "Entry should be removed after container dies")
+
+	cancel()
+	wg.Wait()
+}
+
+func TestE2E_CreateOnHealthy_NoHealthcheck(t *testing.T) {
+	logger.Info("In TestE2E_CreateOnHealthy_NoHealthcheck")
+
+	conf, err := getEnvVars()
+	if err != nil {
+		t.Fatalf("Failed to load e2e test env vars: %v", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	dockerCli, err := dockerApi.NewClientWithOpts(dockerApi.FromEnv)
+	if err != nil {
+		t.Fatalf("Failed to create docker api client: %v", err)
+	}
+
+	workingDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Failed to get working directory: %v", err)
+	}
+
+	infraContainers := getInfraContainers(conf, workingDir)
+
+	dockerClient, _, npmClient, adguardHomeClient := setup(t, ctx, dockerCli, infraContainers)
+
+	t.Cleanup(func() {
+		cleanup(t, dockerCli, infraContainers, npmClient)
+	})
+
+	proc := processor.New(
+		map[string]*docker.Client{dockerClient.Host: dockerClient},
+		adguardHomeClient,
+		nil,
+		npmClient,
+		false,
+	)
+
+	var wg sync.WaitGroup
+	wg.Go(func() {
+		proc.ListenForEvents(ctx)
+	})
+
+	testURL := "no-healthcheck-test.home"
+	testContainers := []Container{
+		{
+			image: testContainerImage,
+			cmd:   []string{"tail", "-f", "/dev/null"},
+			labels: map[string]string{
+				docker.IpLabel:  "4.4.4.4:8080",
+				docker.UrlLabel: testURL,
+				docker.GeneralOptionsCreateOnHealthyLabel: "true",
+			},
+			name:       testContainerName + "-no-healthcheck",
+			hostConfig: &containerApi.HostConfig{},
+			// NO healthcheck defined
+		},
+	}
+
+	err = pullImage(ctx, dockerCli, testContainers[0].image)
+	require.NoError(t, err, "Failed to pull test container image")
+	startRequiredContainers(t, ctx, dockerCli, testContainers)
+
+	t.Cleanup(func() {
+		dockerCli.ContainerRemove(context.Background(), testContainers[0].id, containerApi.RemoveOptions{Force: true})
+	})
+
+	// Assert entry NEVER exists
+	logger.Info("Asserting entry is NOT created for container without healthcheck")
+	require.Never(t, func() bool {
+		npmProxyHosts, _ := npmClient.GetProxyHosts()
+		_, exists := npmProxyHosts[testURL]
+		return exists
+	}, 5*time.Second, 1*time.Second, "Entry should NOT be created when no healthcheck is defined")
+
+	cancel()
+	wg.Wait()
 }

@@ -9,9 +9,10 @@ import (
 
 func Listen(ctx context.Context, dockerClient *Client, handler func(events.Message)) error {
 	f := filters.NewArgs()
-	f.Add("type", "container")
-	f.Add("event", ContainerEvent.Start.String())
-	f.Add("event", ContainerEvent.Die.String())
+	f.Add("type", string(events.ContainerEventType))
+	f.Add("event", string(events.ActionDie))
+	f.Add("event", string(events.ActionHealthStatusHealthy))
+	f.Add("event", string(events.ActionStart))
 
 	log.Info("Listening for Docker events...", "host", dockerClient.DisplayHost)
 

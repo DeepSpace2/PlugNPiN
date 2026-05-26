@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
@@ -19,16 +20,22 @@ import (
 )
 
 type ClientOptions struct {
-	AdguardHome *adguardhome.AdguardHomeOptions
-	Pihole      *pihole.PiHoleOptions
-	NPM         *npm.NpmProxyHostOptions
+	AdguardHome    *adguardhome.AdguardHomeOptions
+	GeneralOptions GeneralOptions
+	NPM            *npm.NpmProxyHostOptions
+	Pihole         *pihole.PiHoleOptions
+}
+
+type GeneralOptions struct {
+	CreateOnHealthy bool
 }
 
 var log = logging.GetLogger()
 
 const (
-	IpLabel  = "plugNPiN.ip"
-	UrlLabel = "plugNPiN.url"
+	GeneralOptionsCreateOnHealthyLabel = "plugNPiN.options.createOnHealthy"
+	IpLabel                            = "plugNPiN.ip"
+	UrlLabel                           = "plugNPiN.url"
 
 	adguardHomeOptionsTargetDomainLabel = "plugNPiN.adguardHomeOptions.targetDomain"
 	npmOptionsAccessListNameLabel       = "plugNPiN.npmOptions.accessListName"
@@ -104,6 +111,9 @@ func GetValuesFromLabels(labels map[string]string) (ip string, urls []string, po
 
 	opts = &ClientOptions{}
 
+	generalOptionsCreateOnHealthy, _ := strconv.ParseBool(labels[GeneralOptionsCreateOnHealthyLabel])
+	opts.GeneralOptions = GeneralOptions{CreateOnHealthy: generalOptionsCreateOnHealthy}
+
 	npmOptionsBlockExploitsLabelValue, exists := labels[npmOptionsBlockExploitsLabel]
 	if !exists {
 		npmOptionsBlockExploitsLabelValue = "true"
@@ -159,4 +169,27 @@ func GetValuesFromLabels(labels map[string]string) (ip string, urls []string, po
 	}
 
 	return ip, urls, port, opts, nil
+}
+
+func (d *Client) InspectContainer(ctx context.Context, containerId string) (container.InspectResponse, error) {
+	// If the incoming context doesn't already have a deadline,
+	// enforce a 5-second safety bound for this specific Docker call.
+	if _, hasDeadline := ctx.Deadline(); !hasDeadline {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+	}
+	return d.ContainerInspect(ctx, containerId)
+}
+
+func (d *Client) HasHealthcheck(containerInspectResponse container.InspectResponse) bool {
+	return containerInspectResponse.Config != nil &&
+		containerInspectResponse.Config.Healthcheck != nil &&
+		len(containerInspectResponse.Config.Healthcheck.Test) > 0
+}
+
+func (d *Client) IsHealthy(containerInspectResponse container.InspectResponse) bool {
+	return containerInspectResponse.State != nil &&
+		containerInspectResponse.State.Health != nil &&
+		containerInspectResponse.State.Health.Status == CONTAINER_HEALTHY_STATUS
 }
