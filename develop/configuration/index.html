@@ -431,6 +431,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#general-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        General Options
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#adguard-home" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -653,6 +664,25 @@
 </table>
 <h2 id="per-container-configuration">Per Container Configuration</h2>
 <p>Use the following labels on your containers to enable specific features</p>
+<h3 id="general-options">General Options</h3>
+<table>
+<thead>
+<tr>
+<th style="width:45%">Label</th>
+<th>Description</th>
+<th style="width:10%">Default</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>plugNPiN.options.createOnHealthy</code></td>
+<td>If set to <code>true</code>, PlugNPiN will wait for the container to become <strong>healthy</strong> before creating entries</td>
+<td><code>false</code></td>
+<td><strong>This option requires the container to have a <a href="https://docs.docker.com/engine/reference/builder/#healthcheck" target="_blank">Docker Healthcheck</a> defined. If no healthcheck is found, an error will be logged and no entries will be created</strong></td>
+</tr>
+</tbody>
+</table>
 <h3 id="adguard-home">AdGuard Home</h3>
 <table>
 <thead>
@@ -660,12 +690,14 @@
 <th style="width:45%">Label</th>
 <th>Description</th>
 <th style="width:10%">Default</th>
+<th>Notes</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>plugNPiN.adguardHomeOptions.targetDomain</code></td>
 <td>If provided, a CNAME DNS Rewrite will be created</td>
+<td></td>
 <td></td>
 </tr>
 </tbody>
@@ -756,12 +788,14 @@
 <th style="width:35%">Label</th>
 <th>Description</th>
 <th style="width:10%">Default</th>
+<th>Notes</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>plugNPiN.piholeOptions.targetDomain</code></td>
 <td>If provided, a CNAME record will be created <strong>instead</strong> of a DNS record</td>
+<td></td>
 <td></td>
 </tr>
 </tbody>
