@@ -373,7 +373,7 @@ func TestE2E(t *testing.T) {
 		false,
 	)
 
-	proc.RunOnce()
+	proc.RunOnce(ctx)
 
 	piholeDnsRecords, err := piholeClient.GetDnsRecords()
 	if err != nil {

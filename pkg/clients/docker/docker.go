@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
@@ -170,8 +171,15 @@ func GetValuesFromLabels(labels map[string]string) (ip string, urls []string, po
 	return ip, urls, port, opts, nil
 }
 
-func (d *Client) InspectContainer(ctx context.Context, containerID string) (container.InspectResponse, error) {
-	return d.ContainerInspect(ctx, containerID)
+func (d *Client) InspectContainer(ctx context.Context, containerId string) (container.InspectResponse, error) {
+	// If the incoming context doesn't already have a deadline,
+	// enforce a 5-second safety bound for this specific Docker call.
+	if _, hasDeadline := ctx.Deadline(); !hasDeadline {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+	}
+	return d.ContainerInspect(ctx, containerId)
 }
 
 func (d *Client) HasHealthcheck(containerInspectResponse container.InspectResponse) bool {

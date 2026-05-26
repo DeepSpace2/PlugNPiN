@@ -37,7 +37,7 @@ func New(dockerClients map[string]*docker.Client, adguardHomeClient *adguardhome
 }
 
 func (p *Processor) RunScheduled(ctx context.Context, interval time.Duration) {
-	p.RunOnce()
+	p.RunOnce(ctx)
 
 	if interval == 0 {
 		return
@@ -51,7 +51,7 @@ func (p *Processor) RunScheduled(ctx context.Context, interval time.Duration) {
 	for {
 		select {
 		case <-ticker.C:
-			p.RunOnce()
+			p.RunOnce(ctx)
 			log.Info(fmt.Sprintf("Will run again in %v. Press Ctrl+C to exit.", interval))
 		case <-ctx.Done():
 			return
@@ -64,7 +64,7 @@ func (p *Processor) ListenForEvents(ctx context.Context) {
 		go func(client *docker.Client) {
 			log.Info("Starting event listener", "host", client.DisplayHost)
 			err := docker.Listen(ctx, client, func(event events.Message) {
-				p.handleDockerEvent(event, client)
+				p.handleDockerEvent(ctx, event, client)
 			})
 			if err != nil && err != context.Canceled {
 				log.Error("Docker event listener stopped", "host", client.DisplayHost, "error", err)
@@ -73,7 +73,7 @@ func (p *Processor) ListenForEvents(ctx context.Context) {
 	}
 }
 
-func (p *Processor) RunOnce() {
+func (p *Processor) RunOnce(ctx context.Context) {
 	for _, dockerClient := range p.dockerClients {
 		containers, err := dockerClient.GetRelevantContainers()
 		if err != nil {
@@ -84,13 +84,13 @@ func (p *Processor) RunOnce() {
 		log.Info(fmt.Sprintf("Found %v containers", len(containers)), "host", dockerClient.DisplayHost)
 
 		for _, container := range containers {
-			p.preprocessContainer(container, dockerClient)
+			p.preprocessContainer(ctx, container, dockerClient)
 		}
 	}
 	log.Info("Done")
 }
 
-func (p *Processor) preprocessContainer(container container.Summary, dockerClient *docker.Client) {
+func (p *Processor) preprocessContainer(ctx context.Context, container container.Summary, dockerClient *docker.Client) {
 	parsedContainerName := docker.GetParsedContainerName(container)
 
 	ip, urls, port, opts, err := docker.GetValuesFromLabels(container.Labels)
@@ -103,10 +103,10 @@ func (p *Processor) preprocessContainer(container container.Summary, dockerClien
 		}
 		return
 	}
-	p.processContainer(context.Background(), events.ActionStart, container.ID, dockerClient, parsedContainerName, ip, urls, port, opts)
+	p.processContainer(ctx, events.ActionStart, container.ID, dockerClient, parsedContainerName, ip, urls, port, opts)
 }
 
-func (p *Processor) handleDockerEvent(event events.Message, dockerClient *docker.Client) {
+func (p *Processor) handleDockerEvent(ctx context.Context, event events.Message, dockerClient *docker.Client) {
 	containerName, ok := event.Actor.Attributes["name"]
 	if !ok {
 		log.Info(fmt.Sprintf("Skipping event for container with no name: %v", event.Actor.ID), "host", dockerClient.DisplayHost)
@@ -124,7 +124,7 @@ func (p *Processor) handleDockerEvent(event events.Message, dockerClient *docker
 		}
 		return
 	}
-	p.processContainer(context.Background(), event.Action, event.Actor.ID, dockerClient, containerName, ip, urls, port, opts)
+	p.processContainer(ctx, event.Action, event.Actor.ID, dockerClient, containerName, ip, urls, port, opts)
 }
 
 func (p *Processor) shouldSkip(generalOptions *docker.GeneralOptions, event events.Action) bool {
