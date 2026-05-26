@@ -175,9 +175,13 @@ func (d *Client) InspectContainer(ctx context.Context, containerID string) (cont
 }
 
 func (d *Client) HasHealthcheck(containerInspectResponse container.InspectResponse) bool {
-	return containerInspectResponse.Config.Healthcheck != nil && len(containerInspectResponse.Config.Healthcheck.Test) > 0
+	return containerInspectResponse.Config != nil &&
+		containerInspectResponse.Config.Healthcheck != nil &&
+		len(containerInspectResponse.Config.Healthcheck.Test) > 0
 }
 
 func (d *Client) IsHealthy(containerInspectResponse container.InspectResponse) bool {
-	return containerInspectResponse.State.Health != nil && containerInspectResponse.State.Health.Status == CONTAINER_HEALTHY_STATUS
+	return containerInspectResponse.State != nil &&
+		containerInspectResponse.State.Health != nil &&
+		containerInspectResponse.State.Health.Status == CONTAINER_HEALTHY_STATUS
 }

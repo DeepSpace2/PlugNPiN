@@ -497,7 +497,8 @@ func TestE2E_CreateOnHealthy(t *testing.T) {
 		},
 	}
 
-	pullImage(ctx, dockerCli, testContainers[0].image)
+	err = pullImage(ctx, dockerCli, testContainers[0].image)
+	require.NoError(t, err, "Failed to pull test container image")
 	startRequiredContainers(t, ctx, dockerCli, testContainers)
 
 	t.Cleanup(func() {
@@ -608,7 +609,8 @@ func TestE2E_CreateOnHealthy_NoHealthcheck(t *testing.T) {
 		},
 	}
 
-	pullImage(ctx, dockerCli, testContainers[0].image)
+	err = pullImage(ctx, dockerCli, testContainers[0].image)
+	require.NoError(t, err, "Failed to pull test container image")
 	startRequiredContainers(t, ctx, dockerCli, testContainers)
 
 	t.Cleanup(func() {
