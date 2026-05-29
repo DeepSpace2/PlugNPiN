@@ -1,5 +1,9 @@
 # Configuration
 
+!!! tip
+
+    Hover over any variable or label to reveal a 'copy to clipboard' button
+
 ## Environment Variables
 
 ### Required
