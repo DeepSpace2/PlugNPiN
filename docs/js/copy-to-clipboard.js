@@ -28,9 +28,7 @@ document$.subscribe(function() {
 
       const textToCopy = code.textContent.trim();
       
-      if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(textToCopy).then(() => showSuccess(button));
-      } else {
+      const fallbackCopy = () => {
         const textArea = document.createElement("textarea");
         textArea.value = textToCopy;
         textArea.style.position = "fixed";
@@ -41,11 +39,22 @@ document$.subscribe(function() {
         textArea.select();
         try {
           document.execCommand('copy');
-          showSuccess(button);
+          return true;
         } catch (err) {
           console.error('Fallback copy failed', err);
+          return false;
         }
         document.body.removeChild(textArea);
+      };
+
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(textToCopy)
+          .then(() => showSuccess(button))
+          .catch(() => {
+            if (fallbackCopy()) showSuccess(button);
+          });
+      } else if (fallbackCopy()) {
+        showSuccess(button);
       }
     });
   });
