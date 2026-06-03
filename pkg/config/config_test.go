@@ -4,22 +4,18 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func TestGetEnvVars(t *testing.T) {
-	// A list of all environment variables used by the Config struct
-	configEnvVars := []string{
-		"NGINX_PROXY_MANAGER_HOST",
-		"NGINX_PROXY_MANAGER_PASSWORD",
-		"NGINX_PROXY_MANAGER_USERNAME",
-		"PIHOLE_HOST",
-		"PIHOLE_PASSWORD",
-		"DOCKER_HOST",
-		"RUN_INTERVAL",
-	}
+func TestGetConfig_EnvVars(t *testing.T) {
+	oldPath := dockerSecretRootPath
+	defer func() { dockerSecretRootPath = oldPath }()
+	dockerSecretRootPath = t.TempDir()
 
 	testCases := []struct {
 		name           string
@@ -170,26 +166,130 @@ func TestGetEnvVars(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Unset all config-related env vars to ensure a clean slate
-			for _, key := range configEnvVars {
-				os.Unsetenv(key)
-			}
-
-			// Set environment variables for the current test case
-			// t.Setenv will handle restoring them after the test
+			unsetAllConfigEnvVars()
 			for key, value := range tc.envVars {
 				t.Setenv(key, value)
 			}
 
-			config, err := GetEnvVars()
+			config, err := Get()
 
-			if (err != nil) != tc.expectErr {
-				t.Errorf("Expected error: %v, got: %v", tc.expectErr, err)
-			}
-
-			if !reflect.DeepEqual(config, tc.expectedConfig) {
-				t.Errorf("Expected config: \nwant: %+v, \ngot:  %+v", tc.expectedConfig, config)
+			if tc.expectErr {
+				assert.Error(t, err)
+				assert.Nil(t, config)
+			} else {
+				assert.Equal(t, tc.expectedConfig, config)
 			}
 		})
 	}
+}
+
+func TestGetConfig_DockerSecrets(t *testing.T) {
+	unsetAllConfigEnvVars()
+	oldPath := dockerSecretRootPath
+	defer func() { dockerSecretRootPath = oldPath }()
+
+	tmpDir := t.TempDir()
+	dockerSecretRootPath = tmpDir
+
+	// DYNAMIC SETUP: Iterate over Config fields and create mock secrets for those tagged with secret:"true"
+	typ := reflect.TypeOf(Config{})
+	for i := 0; i < typ.NumField(); i++ {
+		field := typ.Field(i)
+		if field.Tag.Get("secret") == "true" {
+			envName := field.Tag.Get("env")
+			mockValue := "secret-val-for-" + envName
+			err := writeFile(tmpDir, envName, mockValue)
+			assert.NoError(t, err, "failed to create secret file for "+envName)
+		}
+	}
+
+	// Set required hosts/booleans so GetConfig passes validation
+	t.Setenv("NGINX_PROXY_MANAGER_HOST", "npm.local")
+	t.Setenv("PIHOLE_HOST", "pihole.local")
+	t.Setenv("ADGUARD_HOME_DISABLED", "true")
+
+	config, err := Get()
+	assert.NoError(t, err)
+
+	// DYNAMIC VERIFICATION: Ensure every secret-enabled field was loaded correctly
+	cfgVal := reflect.ValueOf(config).Elem()
+	for i := 0; i < typ.NumField(); i++ {
+		field := typ.Field(i)
+		if field.Tag.Get("secret") == "true" {
+			envName := field.Tag.Get("env")
+
+			// Host URLs are overridden by Setenv above, so we skip them or account for them
+			if envName == "NGINX_PROXY_MANAGER_HOST" || envName == "PIHOLE_HOST" {
+				continue
+			}
+
+			expected := "secret-val-for-" + envName
+			actual := cfgVal.Field(i).String()
+			assert.Equal(t, expected, actual, "Field %s was not loaded correctly from secret %s", field.Name, envName)
+		}
+	}
+}
+
+func TestGetConfig_SecretPrecedence(t *testing.T) {
+	unsetAllConfigEnvVars()
+	oldPath := dockerSecretRootPath
+	defer func() { dockerSecretRootPath = oldPath }()
+
+	tmpDir := t.TempDir()
+	dockerSecretRootPath = tmpDir
+
+	// Use reflection to find a field that supports secrets (e.g., PiholePassword)
+	field, _ := reflect.TypeOf(Config{}).FieldByName("PiholePassword")
+	envName := field.Tag.Get("env")
+
+	secretValue := "secret-pw"
+	err := writeFile(tmpDir, envName, secretValue)
+	assert.NoError(t, err)
+
+	// Set an environment variable for the same secret
+	envValue := "env-pw"
+	t.Setenv(envName, envValue)
+	t.Setenv("NGINX_PROXY_MANAGER_HOST", "npm.local")
+	t.Setenv("NGINX_PROXY_MANAGER_USERNAME", "npm-user")
+	t.Setenv("NGINX_PROXY_MANAGER_PASSWORD", "npm-pw")
+	t.Setenv("PIHOLE_HOST", "pihole.local")
+	t.Setenv("ADGUARD_HOME_DISABLED", "true")
+
+	config, err := Get()
+	assert.NoError(t, err)
+
+	// Verify precedence: env var should win
+	assert.Equal(t, envValue, config.PiholePassword)
+	assert.NotEqual(t, secretValue, config.PiholePassword)
+}
+
+func TestGetConfig_SecretsValidation(t *testing.T) {
+	unsetAllConfigEnvVars()
+	oldPath := dockerSecretRootPath
+	defer func() { dockerSecretRootPath = oldPath }()
+
+	tmpDir := t.TempDir()
+	dockerSecretRootPath = tmpDir
+
+	t.Setenv("NGINX_PROXY_MANAGER_HOST", "npm.local")
+	t.Setenv("PIHOLE_HOST", "pihole.local")
+	t.Setenv("ADGUARD_HOME_DISABLED", "true")
+
+	_, err := Get()
+	assert.Error(t, err, "Expected an error due to missing credentials")
+}
+
+func unsetAllConfigEnvVars() {
+	typ := reflect.TypeOf(Config{})
+	for i := 0; i < typ.NumField(); i++ {
+		field := typ.Field(i)
+		envName := field.Tag.Get("env")
+		if envName != "" {
+			os.Unsetenv(envName)
+		}
+	}
+}
+
+func writeFile(dir, fileName, content string) error {
+	return os.WriteFile(filepath.Join(dir, fileName), []byte(content), 0o644)
 }

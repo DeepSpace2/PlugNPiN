@@ -23,30 +23,30 @@ func main() {
 
 	cliFlags := cli.ParseFlags()
 
-	conf, err := config.GetEnvVars()
+	config, err := config.Get()
 	if err != nil {
 		log.Error("Failed to parse environment variables", "error", err)
 		os.Exit(1)
 	}
 
-	if conf.Debug {
+	if config.Debug {
 		logging.SetLevel(logging.DEBUG)
 	} else {
 		logging.SetLevel(logging.INFO)
 	}
 
-	if conf.RunInterval > 0 {
-		log.Info(fmt.Sprintf("Will run every %v", conf.RunInterval))
+	if config.RunInterval > 0 {
+		log.Info(fmt.Sprintf("Will run every %v", config.RunInterval))
 	}
 
-	dockerClients, adguardHomeClient, piholeClient, npmClient, err := clients.GetClients(cliFlags, conf)
+	dockerClients, adguardHomeClient, piholeClient, npmClient, err := clients.GetClients(cliFlags, config)
 	if err != nil {
 		os.Exit(1)
 	}
 
 	proc := processor.New(dockerClients, adguardHomeClient, piholeClient, npmClient, cliFlags.DryRun)
 
-	if conf.RunInterval == 0 {
+	if config.RunInterval == 0 {
 		log.Info("RUN_INTERVAL is 0, will run once")
 		proc.RunOnce(ctx)
 		return
@@ -59,7 +59,7 @@ func main() {
 	})
 
 	wg.Go(func() {
-		proc.RunScheduled(ctx, conf.RunInterval)
+		proc.RunScheduled(ctx, config.RunInterval)
 	})
 
 	<-ctx.Done()
