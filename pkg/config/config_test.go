@@ -203,9 +203,6 @@ func TestGetConfig_DockerSecrets(t *testing.T) {
 		}
 	}
 
-	// Set required hosts/booleans so GetConfig passes validation
-	t.Setenv("NGINX_PROXY_MANAGER_HOST", "npm.local")
-	t.Setenv("PIHOLE_HOST", "pihole.local")
 	t.Setenv("ADGUARD_HOME_DISABLED", "true")
 
 	config, err := Get()
@@ -217,11 +214,6 @@ func TestGetConfig_DockerSecrets(t *testing.T) {
 		field := typ.Field(i)
 		if field.Tag.Get("secret") == "true" {
 			envName := field.Tag.Get("env")
-
-			// Host URLs are overridden by Setenv above, so we skip them or account for them
-			if envName == "NGINX_PROXY_MANAGER_HOST" || envName == "PIHOLE_HOST" {
-				continue
-			}
 
 			expected := "secret-val-for-" + envName
 			actual := cfgVal.Field(i).String()

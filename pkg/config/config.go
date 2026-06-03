@@ -51,7 +51,7 @@ func getValueFromSecret(secretFile string) (string, error) {
 		return "", fmt.Errorf("failed to read secret file %v: %w", path, err)
 	}
 
-	return strings.TrimSpace(string(content)), nil
+	return strings.TrimRight(string(content), "\r\n"), nil
 }
 
 func Get() (*Config, error) {

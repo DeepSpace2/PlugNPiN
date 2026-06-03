@@ -25,7 +25,7 @@ func main() {
 
 	config, err := config.Get()
 	if err != nil {
-		log.Error("Failed to parse environment variables", "error", err)
+		log.Error("Failed to load configuration", "error", err)
 		os.Exit(1)
 	}
 
