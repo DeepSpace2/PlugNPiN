@@ -51,7 +51,7 @@ const (
 )
 
 var (
-	logger                 = logging.GetLogger()
+	logger                 = logging.GetLogger("e2e")
 	globalImagesToRemove   = make(map[string]struct{})
 	globalImagesToRemoveMu sync.Mutex
 )

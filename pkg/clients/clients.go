@@ -10,7 +10,7 @@ import (
 	"github.com/deepspace2/plugnpin/pkg/logging"
 )
 
-var log = logging.GetLogger()
+var log = logging.GetLogger("clients")
 
 func GetClients(cliFlags cli.Flags, conf *config.Config) (map[string]*docker.Client, *adguardhome.Client, *pihole.Client, *npm.Client, error) {
 	var adguardHomeClient *adguardhome.Client

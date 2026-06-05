@@ -30,7 +30,7 @@ type GeneralOptions struct {
 	CreateOnHealthy bool
 }
 
-var log = logging.GetLogger()
+var log = logging.GetLogger("docker")
 
 const (
 	GeneralOptionsCreateOnHealthyLabel = "plugNPiN.options.createOnHealthy"
@@ -192,4 +192,11 @@ func (d *Client) IsHealthy(containerInspectResponse container.InspectResponse) b
 	return containerInspectResponse.State != nil &&
 		containerInspectResponse.State.Health != nil &&
 		containerInspectResponse.State.Health.Status == CONTAINER_HEALTHY_STATUS
+}
+
+func (d *Client) GetShortContainerId(containerId string) string {
+	if len(containerId) < 12 {
+		return containerId
+	}
+	return containerId[:12]
 }
