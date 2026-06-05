@@ -12,26 +12,26 @@ import (
 
 var log = logging.GetLogger("clients")
 
-func GetClients(cliFlags cli.Flags, conf *config.Config) (map[string]*docker.Client, *adguardhome.Client, *pihole.Client, *npm.Client, error) {
+func GetClients(cliFlags cli.Flags, config *config.Config) (map[string]*docker.Client, *adguardhome.Client, *pihole.Client, *npm.Client, error) {
 	var adguardHomeClient *adguardhome.Client
 	var piholeClient *pihole.Client
 	var npmClient *npm.Client
 
 	if !cliFlags.DryRun {
-		if !conf.PiholeDisabled {
-			piholeClient = pihole.NewClient(conf.PiholeHost)
-			err := piholeClient.Login(conf.PiholePassword)
+		if !config.PiholeDisabled {
+			piholeClient = pihole.NewClient(config.PiholeHost)
+			err := piholeClient.Login(config.PiholePassword)
 			if err != nil {
 				log.Error("Failed to login to Pi-Hole", "error", err)
 				return nil, nil, nil, nil, err
 			}
 		}
 
-		if !conf.AdguardHomeDisabled {
-			adguardHomeClient = adguardhome.NewClient(conf.AdguardHomeHost, conf.AdguardHomeUsername, conf.AdguardHomePassword)
+		if !config.AdguardHomeDisabled {
+			adguardHomeClient = adguardhome.NewClient(config.AdguardHomeHost, config.AdguardHomeUsername, config.AdguardHomePassword)
 		}
 
-		npmClient = npm.NewClient(conf.NpmHost, conf.NpmUsername, conf.NpmPassword)
+		npmClient = npm.NewClient(config.NpmHost, config.NpmUsername, config.NpmPassword)
 		err := npmClient.Login()
 		if err != nil {
 			log.Error("Failed to login to Nginx Proxy Manager", "error", err)
@@ -40,10 +40,10 @@ func GetClients(cliFlags cli.Flags, conf *config.Config) (map[string]*docker.Cli
 	}
 
 	dockerClients := make(map[string]*docker.Client)
-	if len(conf.DockerHosts) == 0 {
-		conf.DockerHosts = append(conf.DockerHosts, conf.DockerHost)
+	if len(config.DockerHosts) == 0 {
+		config.DockerHosts = append(config.DockerHosts, config.DockerHost)
 	}
-	for _, host := range conf.DockerHosts {
+	for _, host := range config.DockerHosts {
 		dockerClient, err := docker.NewClient(host)
 		if err != nil {
 			log.Error("Failed to create docker client", "host", host, "error", err)
