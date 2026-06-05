@@ -4,20 +4,29 @@
 
     Hover over any variable or label to reveal a 'copy to clipboard' button
 
+## Docker Secrets
+
+Starting with version [:octicons-tag-24: 1.0.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v1.0.0){ .md-tag target="_blank" }
+PlugNPiN supports [Docker Secrets](https://docs.docker.com/compose/how-tos/use-secrets/){: target="_blank" } for managing sensitive credentials and host URLs. This is the recommended approach for production deployments.
+
+**Precedence:** Environment variables always take precedence over Docker Secrets.
+
+**Usage:** Secrets' filenames must match the corresponding environment variable.
+
 ## Environment Variables
 
 ### Required
 
 | Variable {: style="width:30%" } | Description | Notes |
 |---|---|---|
-| `ADGUARD_HOME_HOST`<br>[:octicons-tag-24: 0.8.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v0.8.0){ .md-tag target="_blank" } | The URL of your AdGuard Home instance | Only required if `ADGUARD_HOME_DISABLED` is set to `false` |
-| `ADGUARD_HOME_USERNAME`<br>[:octicons-tag-24: 0.8.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v0.8.0){ .md-tag target="_blank" } | Your AdGuard Home username | Only required if `ADGUARD_HOME_DISABLED` is set to `false` |
-| `ADGUARD_HOME_PASSWORD`<br>[:octicons-tag-24: 0.8.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v0.8.0){ .md-tag target="_blank" } | Your AdGuard Home password | Only required if `ADGUARD_HOME_DISABLED` is set to `false` |
-| `NGINX_PROXY_MANAGER_HOST`<br>[:octicons-tag-24: 0.1.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v0.1.0){ .md-tag target="_blank" } | The URL of your Nginx Proxy Manager instance. | |
-| `NGINX_PROXY_MANAGER_USERNAME`<br>[:octicons-tag-24: 0.1.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v0.1.0){ .md-tag target="_blank" } | Your Nginx Proxy Manager username. | |
-| `NGINX_PROXY_MANAGER_PASSWORD`<br>[:octicons-tag-24: 0.1.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v0.1.0){ .md-tag target="_blank" } | Your Nginx Proxy Manager password. <br> **Important:** It is recommended to create a new non-admin user with only the "Proxy Hosts - Manage" permission. | |
-| `PIHOLE_HOST`<br>[:octicons-tag-24: 0.1.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v0.1.0){ .md-tag target="_blank" } | The URL of your Pi-Hole instance. | Only required if `PIHOLE_DISABLED` is set to `false` |
-| `PIHOLE_PASSWORD`<br>[:octicons-tag-24: 0.1.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v0.1.0){ .md-tag target="_blank" } | Your Pi-Hole password. <br> **Important:** It is recommended to create an 'application password' rather than using your actual admin password. | Only required if `PIHOLE_DISABLED` is set to `false` |
+| `ADGUARD_HOME_HOST`<br>[:octicons-tag-24: 0.8.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v0.8.0){ .md-tag target="_blank" } | The URL of your AdGuard Home instance | Only required if `ADGUARD_HOME_DISABLED` is set to `false`. Can be set using [Docker Secrets](#docker-secrets) |
+| `ADGUARD_HOME_USERNAME`<br>[:octicons-tag-24: 0.8.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v0.8.0){ .md-tag target="_blank" } | Your AdGuard Home username | Only required if `ADGUARD_HOME_DISABLED` is set to `false`. Can be set using [Docker Secrets](#docker-secrets) |
+| `ADGUARD_HOME_PASSWORD`<br>[:octicons-tag-24: 0.8.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v0.8.0){ .md-tag target="_blank" } | Your AdGuard Home password | Only required if `ADGUARD_HOME_DISABLED` is set to `false`. Can be set using [Docker Secrets](#docker-secrets) |
+| `NGINX_PROXY_MANAGER_HOST`<br>[:octicons-tag-24: 0.1.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v0.1.0){ .md-tag target="_blank" } | The URL of your Nginx Proxy Manager instance. | Can be set using [Docker Secrets](#docker-secrets) |
+| `NGINX_PROXY_MANAGER_USERNAME`<br>[:octicons-tag-24: 0.1.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v0.1.0){ .md-tag target="_blank" } | Your Nginx Proxy Manager username. | Can be set using [Docker Secrets](#docker-secrets) |
+| `NGINX_PROXY_MANAGER_PASSWORD`<br>[:octicons-tag-24: 0.1.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v0.1.0){ .md-tag target="_blank" } | Your Nginx Proxy Manager password. <br> **Important:** It is recommended to create a new non-admin user with only the "Proxy Hosts - Manage" permission. | Can be set using [Docker Secrets](#docker-secrets) |
+| `PIHOLE_HOST`<br>[:octicons-tag-24: 0.1.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v0.1.0){ .md-tag target="_blank" } | The URL of your Pi-Hole instance. | Only required if `PIHOLE_DISABLED` is set to `false`. Can be set using [Docker Secrets](#docker-secrets) |
+| `PIHOLE_PASSWORD`<br>[:octicons-tag-24: 0.1.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v0.1.0){ .md-tag target="_blank" } | Your Pi-Hole password. <br> **Important:** It is recommended to create an 'application password' rather than using your actual admin password. | Only required if `PIHOLE_DISABLED` is set to `false`. Can be set using [Docker Secrets](#docker-secrets) |
 
 ### Optional
 
