@@ -382,6 +382,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#docker-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Docker Secrets
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#environment-variables" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -568,6 +579,11 @@
 <p class="admonition-title">Tip</p>
 <p>Hover over any variable or label to reveal a 'copy to clipboard' button</p>
 </div>
+<h2 id="docker-secrets">Docker Secrets</h2>
+<p>Starting with version <a class="md-tag" href="https://github.com/DeepSpace2/plugnpin/releases/tag/v1.0.0" target="_blank"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.75 6.5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5"/><path d="M2.5 1h8.44a1.5 1.5 0 0 1 1.06.44l10.25 10.25a1.5 1.5 0 0 1 0 2.12l-8.44 8.44a1.5 1.5 0 0 1-2.12 0L1.44 12A1.5 1.5 0 0 1 1 10.94V2.5A1.5 1.5 0 0 1 2.5 1m0 1.5v8.44l10.25 10.25 8.44-8.44L10.94 2.5Z"/></svg></span> 1.0.0</a>
+PlugNPiN supports <a href="https://docs.docker.com/compose/how-tos/use-secrets/" target="_blank">Docker Secrets</a> for managing sensitive credentials and host URLs. This is the recommended approach for production deployments.</p>
+<p><strong>Precedence:</strong> Environment variables always take precedence over Docker Secrets.</p>
+<p><strong>Usage:</strong> Secrets' filenames must match the corresponding environment variable.</p>
 <h2 id="environment-variables">Environment Variables</h2>
 <h3 id="required">Required</h3>
 <table>
@@ -582,42 +598,42 @@
 <tr>
 <td><code>ADGUARD_HOME_HOST</code><br><a class="md-tag" href="https://github.com/DeepSpace2/plugnpin/releases/tag/v0.8.0" target="_blank"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.75 6.5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5"/><path d="M2.5 1h8.44a1.5 1.5 0 0 1 1.06.44l10.25 10.25a1.5 1.5 0 0 1 0 2.12l-8.44 8.44a1.5 1.5 0 0 1-2.12 0L1.44 12A1.5 1.5 0 0 1 1 10.94V2.5A1.5 1.5 0 0 1 2.5 1m0 1.5v8.44l10.25 10.25 8.44-8.44L10.94 2.5Z"/></svg></span> 0.8.0</a></td>
 <td>The URL of your AdGuard Home instance</td>
-<td>Only required if <code>ADGUARD_HOME_DISABLED</code> is set to <code>false</code></td>
+<td>Only required if <code>ADGUARD_HOME_DISABLED</code> is set to <code>false</code>. Can be set using <a href="#docker-secrets">Docker Secrets</a></td>
 </tr>
 <tr>
 <td><code>ADGUARD_HOME_USERNAME</code><br><a class="md-tag" href="https://github.com/DeepSpace2/plugnpin/releases/tag/v0.8.0" target="_blank"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.75 6.5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5"/><path d="M2.5 1h8.44a1.5 1.5 0 0 1 1.06.44l10.25 10.25a1.5 1.5 0 0 1 0 2.12l-8.44 8.44a1.5 1.5 0 0 1-2.12 0L1.44 12A1.5 1.5 0 0 1 1 10.94V2.5A1.5 1.5 0 0 1 2.5 1m0 1.5v8.44l10.25 10.25 8.44-8.44L10.94 2.5Z"/></svg></span> 0.8.0</a></td>
 <td>Your AdGuard Home username</td>
-<td>Only required if <code>ADGUARD_HOME_DISABLED</code> is set to <code>false</code></td>
+<td>Only required if <code>ADGUARD_HOME_DISABLED</code> is set to <code>false</code>. Can be set using <a href="#docker-secrets">Docker Secrets</a></td>
 </tr>
 <tr>
 <td><code>ADGUARD_HOME_PASSWORD</code><br><a class="md-tag" href="https://github.com/DeepSpace2/plugnpin/releases/tag/v0.8.0" target="_blank"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.75 6.5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5"/><path d="M2.5 1h8.44a1.5 1.5 0 0 1 1.06.44l10.25 10.25a1.5 1.5 0 0 1 0 2.12l-8.44 8.44a1.5 1.5 0 0 1-2.12 0L1.44 12A1.5 1.5 0 0 1 1 10.94V2.5A1.5 1.5 0 0 1 2.5 1m0 1.5v8.44l10.25 10.25 8.44-8.44L10.94 2.5Z"/></svg></span> 0.8.0</a></td>
 <td>Your AdGuard Home password</td>
-<td>Only required if <code>ADGUARD_HOME_DISABLED</code> is set to <code>false</code></td>
+<td>Only required if <code>ADGUARD_HOME_DISABLED</code> is set to <code>false</code>. Can be set using <a href="#docker-secrets">Docker Secrets</a></td>
 </tr>
 <tr>
 <td><code>NGINX_PROXY_MANAGER_HOST</code><br><a class="md-tag" href="https://github.com/DeepSpace2/plugnpin/releases/tag/v0.1.0" target="_blank"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.75 6.5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5"/><path d="M2.5 1h8.44a1.5 1.5 0 0 1 1.06.44l10.25 10.25a1.5 1.5 0 0 1 0 2.12l-8.44 8.44a1.5 1.5 0 0 1-2.12 0L1.44 12A1.5 1.5 0 0 1 1 10.94V2.5A1.5 1.5 0 0 1 2.5 1m0 1.5v8.44l10.25 10.25 8.44-8.44L10.94 2.5Z"/></svg></span> 0.1.0</a></td>
 <td>The URL of your Nginx Proxy Manager instance.</td>
-<td></td>
+<td>Can be set using <a href="#docker-secrets">Docker Secrets</a></td>
 </tr>
 <tr>
 <td><code>NGINX_PROXY_MANAGER_USERNAME</code><br><a class="md-tag" href="https://github.com/DeepSpace2/plugnpin/releases/tag/v0.1.0" target="_blank"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.75 6.5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5"/><path d="M2.5 1h8.44a1.5 1.5 0 0 1 1.06.44l10.25 10.25a1.5 1.5 0 0 1 0 2.12l-8.44 8.44a1.5 1.5 0 0 1-2.12 0L1.44 12A1.5 1.5 0 0 1 1 10.94V2.5A1.5 1.5 0 0 1 2.5 1m0 1.5v8.44l10.25 10.25 8.44-8.44L10.94 2.5Z"/></svg></span> 0.1.0</a></td>
 <td>Your Nginx Proxy Manager username.</td>
-<td></td>
+<td>Can be set using <a href="#docker-secrets">Docker Secrets</a></td>
 </tr>
 <tr>
 <td><code>NGINX_PROXY_MANAGER_PASSWORD</code><br><a class="md-tag" href="https://github.com/DeepSpace2/plugnpin/releases/tag/v0.1.0" target="_blank"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.75 6.5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5"/><path d="M2.5 1h8.44a1.5 1.5 0 0 1 1.06.44l10.25 10.25a1.5 1.5 0 0 1 0 2.12l-8.44 8.44a1.5 1.5 0 0 1-2.12 0L1.44 12A1.5 1.5 0 0 1 1 10.94V2.5A1.5 1.5 0 0 1 2.5 1m0 1.5v8.44l10.25 10.25 8.44-8.44L10.94 2.5Z"/></svg></span> 0.1.0</a></td>
 <td>Your Nginx Proxy Manager password. <br> <strong>Important:</strong> It is recommended to create a new non-admin user with only the "Proxy Hosts - Manage" permission.</td>
-<td></td>
+<td>Can be set using <a href="#docker-secrets">Docker Secrets</a></td>
 </tr>
 <tr>
 <td><code>PIHOLE_HOST</code><br><a class="md-tag" href="https://github.com/DeepSpace2/plugnpin/releases/tag/v0.1.0" target="_blank"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.75 6.5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5"/><path d="M2.5 1h8.44a1.5 1.5 0 0 1 1.06.44l10.25 10.25a1.5 1.5 0 0 1 0 2.12l-8.44 8.44a1.5 1.5 0 0 1-2.12 0L1.44 12A1.5 1.5 0 0 1 1 10.94V2.5A1.5 1.5 0 0 1 2.5 1m0 1.5v8.44l10.25 10.25 8.44-8.44L10.94 2.5Z"/></svg></span> 0.1.0</a></td>
 <td>The URL of your Pi-Hole instance.</td>
-<td>Only required if <code>PIHOLE_DISABLED</code> is set to <code>false</code></td>
+<td>Only required if <code>PIHOLE_DISABLED</code> is set to <code>false</code>. Can be set using <a href="#docker-secrets">Docker Secrets</a></td>
 </tr>
 <tr>
 <td><code>PIHOLE_PASSWORD</code><br><a class="md-tag" href="https://github.com/DeepSpace2/plugnpin/releases/tag/v0.1.0" target="_blank"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.75 6.5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5"/><path d="M2.5 1h8.44a1.5 1.5 0 0 1 1.06.44l10.25 10.25a1.5 1.5 0 0 1 0 2.12l-8.44 8.44a1.5 1.5 0 0 1-2.12 0L1.44 12A1.5 1.5 0 0 1 1 10.94V2.5A1.5 1.5 0 0 1 2.5 1m0 1.5v8.44l10.25 10.25 8.44-8.44L10.94 2.5Z"/></svg></span> 0.1.0</a></td>
 <td>Your Pi-Hole password. <br> <strong>Important:</strong> It is recommended to create an 'application password' rather than using your actual admin password.</td>
-<td>Only required if <code>PIHOLE_DISABLED</code> is set to <code>false</code></td>
+<td>Only required if <code>PIHOLE_DISABLED</code> is set to <code>false</code>. Can be set using <a href="#docker-secrets">Docker Secrets</a></td>
 </tr>
 </tbody>
 </table>
