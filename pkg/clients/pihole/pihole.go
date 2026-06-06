@@ -12,7 +12,7 @@ import (
 	"github.com/deepspace2/plugnpin/pkg/logging"
 )
 
-var log = logging.GetLogger()
+var log = logging.GetLogger("pihole")
 
 type Client struct {
 	http.Client

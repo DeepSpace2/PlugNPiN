@@ -15,7 +15,7 @@ import (
 	"github.com/deepspace2/plugnpin/pkg/processor"
 )
 
-var log = logging.GetLogger()
+var log = logging.GetLogger("main")
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

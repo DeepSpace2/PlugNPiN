@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	log                  = logging.GetLogger()
+	log                  = logging.GetLogger("config")
 	dockerSecretRootPath = filepath.Join(string(os.PathSeparator), "run", "secrets")
 )
 

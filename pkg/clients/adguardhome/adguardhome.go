@@ -11,7 +11,7 @@ import (
 	"github.com/deepspace2/plugnpin/pkg/logging"
 )
 
-var log = logging.GetLogger()
+var log = logging.GetLogger("adguardhome")
 
 type Client struct {
 	http.Client

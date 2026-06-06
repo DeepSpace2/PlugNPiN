@@ -14,7 +14,7 @@ import (
 	"github.com/deepspace2/plugnpin/pkg/logging"
 )
 
-var log = logging.GetLogger()
+var log = logging.GetLogger("npm")
 
 type Client struct {
 	http.Client
