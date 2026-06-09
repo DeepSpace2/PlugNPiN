@@ -7,6 +7,7 @@ nav:
   - About: index.md
   - Configuration: configuration.md
   - Usage: usage.md
+  - Monitoring: monitoring.md
   - Contributing: contributing.md
 extra_css:
   - css/theme.css
@@ -71,6 +72,7 @@ markdown_extensions:
       anchor_linenums: true
       line_spans: __span
       pygments_lang_class: true
+  - pymdownx.inlinehilite
   - pymdownx.tabbed:
       alternate_style: true
   - pymdownx.superfences

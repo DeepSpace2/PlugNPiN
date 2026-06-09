@@ -10,6 +10,7 @@ import (
 
 	"github.com/deepspace2/plugnpin/pkg/clients/common"
 	"github.com/deepspace2/plugnpin/pkg/logging"
+	"github.com/deepspace2/plugnpin/pkg/metrics"
 )
 
 var log = logging.GetLogger("pihole")
@@ -28,7 +29,9 @@ var headers map[string]string = map[string]string{
 
 func NewClient(baseURL string) *Client {
 	return &Client{
-		Client:  http.Client{},
+		Client: http.Client{
+			Transport: common.NewInstrumentedRoundTripper(metrics.PI_HOLE, metrics.ObserveApiRequestDuration),
+		},
 		baseURL: fmt.Sprintf("%v/api", baseURL),
 		sid:     "",
 	}
@@ -91,10 +94,10 @@ func (p *Client) GetDnsRecords() (DnsRecords, error) {
 	return dnsRecords, nil
 }
 
-func (p *Client) AddDnsRecords(domains []string, ip string) error {
+func (p *Client) AddDnsRecords(domains []string, ip string) (numOfAddedDnsRecords int, err error) {
 	existingRecords, err := p.GetDnsRecords()
 	if err != nil {
-		return err
+		return numOfAddedDnsRecords, err
 	}
 
 	modified := false
@@ -102,12 +105,13 @@ func (p *Client) AddDnsRecords(domains []string, ip string) error {
 		d := DomainName(domain)
 		if _, exists := existingRecords[d]; !exists {
 			existingRecords[d] = IP(ip)
+			numOfAddedDnsRecords += 1
 			modified = true
 		}
 	}
 
 	if !modified {
-		return nil
+		return numOfAddedDnsRecords, nil
 	}
 
 	rawRecordsSlice := []string{}
@@ -120,7 +124,7 @@ func (p *Client) AddDnsRecords(domains []string, ip string) error {
 
 	payloadString, err := json.Marshal(payload)
 	if err != nil {
-		return err
+		return numOfAddedDnsRecords, err
 	}
 
 	if p.sid == "" {
@@ -130,7 +134,7 @@ func (p *Client) AddDnsRecords(domains []string, ip string) error {
 	headers["X-FTL-SID"] = p.sid
 	resp, statusCode, err := common.Patch(&p.Client, p.baseURL+"/config", headers, string(payloadString))
 	if err != nil {
-		return err
+		return numOfAddedDnsRecords, err
 	}
 	if statusCode == 401 {
 		p.refreshAuth()
@@ -139,16 +143,16 @@ func (p *Client) AddDnsRecords(domains []string, ip string) error {
 	if statusCode >= 400 {
 		var errorResponse ErrorResponse
 		json.Unmarshal([]byte(resp), &errorResponse)
-		return fmt.Errorf("%v. %v", errorResponse.Error.Message, errorResponse.Error.Hint)
+		return numOfAddedDnsRecords, fmt.Errorf("%v. %v", errorResponse.Error.Message, errorResponse.Error.Hint)
 	}
 
-	return nil
+	return numOfAddedDnsRecords, nil
 }
 
-func (p *Client) DeleteDnsRecords(domains []string) error {
+func (p *Client) DeleteDnsRecords(domains []string) (numOfDeletedDnsRecords int, err error) {
 	existingRecords, err := p.GetDnsRecords()
 	if err != nil {
-		return err
+		return numOfDeletedDnsRecords, err
 	}
 
 	modified := false
@@ -156,12 +160,13 @@ func (p *Client) DeleteDnsRecords(domains []string) error {
 		d := DomainName(domain)
 		if _, exists := existingRecords[d]; exists {
 			delete(existingRecords, d)
+			numOfDeletedDnsRecords += 1
 			modified = true
 		}
 	}
 
 	if !modified {
-		return nil
+		return numOfDeletedDnsRecords, nil
 	}
 
 	rawRecordsSlice := []string{}
@@ -174,7 +179,7 @@ func (p *Client) DeleteDnsRecords(domains []string) error {
 
 	payloadString, err := json.Marshal(payload)
 	if err != nil {
-		return err
+		return numOfDeletedDnsRecords, err
 	}
 
 	if p.sid == "" {
@@ -184,7 +189,7 @@ func (p *Client) DeleteDnsRecords(domains []string) error {
 	headers["X-FTL-SID"] = p.sid
 	resp, statusCode, err := common.Patch(&p.Client, p.baseURL+"/config", headers, string(payloadString))
 	if err != nil {
-		return err
+		return numOfDeletedDnsRecords, err
 	}
 	if statusCode == 401 {
 		p.refreshAuth()
@@ -193,10 +198,10 @@ func (p *Client) DeleteDnsRecords(domains []string) error {
 	if statusCode >= 400 {
 		var errorResponse ErrorResponse
 		json.Unmarshal([]byte(resp), &errorResponse)
-		return fmt.Errorf("%v. %v", errorResponse.Error.Message, errorResponse.Error.Hint)
+		return numOfDeletedDnsRecords, fmt.Errorf("%v. %v", errorResponse.Error.Message, errorResponse.Error.Hint)
 	}
 
-	return nil
+	return numOfDeletedDnsRecords, nil
 }
 
 func rawCNameRecordToRecord(rawCNameRecord string) (DomainName, Target, error) {
@@ -238,10 +243,10 @@ func (p *Client) getCNameRecords() (CNameRecords, error) {
 	return cNameRecords, nil
 }
 
-func (p *Client) AddCNameRecords(domains []string, target string) error {
+func (p *Client) AddCNameRecords(domains []string, target string) (numOfAddedCNameRecords int, err error) {
 	existingRecords, err := p.getCNameRecords()
 	if err != nil {
-		return err
+		return numOfAddedCNameRecords, err
 	}
 
 	modified := false
@@ -249,12 +254,13 @@ func (p *Client) AddCNameRecords(domains []string, target string) error {
 		d := DomainName(domain)
 		if _, exists := existingRecords[d]; !exists {
 			existingRecords[d] = Target(target)
+			numOfAddedCNameRecords += 1
 			modified = true
 		}
 	}
 
 	if !modified {
-		return nil
+		return numOfAddedCNameRecords, nil
 	}
 
 	rawRecordsSlice := []string{}
@@ -267,7 +273,7 @@ func (p *Client) AddCNameRecords(domains []string, target string) error {
 
 	payloadString, err := json.Marshal(payload)
 	if err != nil {
-		return err
+		return numOfAddedCNameRecords, err
 	}
 
 	if p.sid == "" {
@@ -277,7 +283,7 @@ func (p *Client) AddCNameRecords(domains []string, target string) error {
 	headers["X-FTL-SID"] = p.sid
 	resp, statusCode, err := common.Patch(&p.Client, p.baseURL+"/config", headers, string(payloadString))
 	if err != nil {
-		return err
+		return numOfAddedCNameRecords, err
 	}
 	if statusCode == 401 {
 		p.refreshAuth()
@@ -286,16 +292,16 @@ func (p *Client) AddCNameRecords(domains []string, target string) error {
 	if statusCode >= 400 {
 		var errorResponse ErrorResponse
 		json.Unmarshal([]byte(resp), &errorResponse)
-		return fmt.Errorf("%v. %v", errorResponse.Error.Message, errorResponse.Error.Hint)
+		return numOfAddedCNameRecords, fmt.Errorf("%v. %v", errorResponse.Error.Message, errorResponse.Error.Hint)
 	}
 
-	return nil
+	return numOfAddedCNameRecords, nil
 }
 
-func (p *Client) DeleteCNameRecords(domains []string) error {
+func (p *Client) DeleteCNameRecords(domains []string) (numOfDeletedCNameRecords int, err error) {
 	existingRecords, err := p.getCNameRecords()
 	if err != nil {
-		return err
+		return numOfDeletedCNameRecords, err
 	}
 
 	modified := false
@@ -303,12 +309,13 @@ func (p *Client) DeleteCNameRecords(domains []string) error {
 		d := DomainName(domain)
 		if _, exists := existingRecords[d]; exists {
 			delete(existingRecords, d)
+			numOfDeletedCNameRecords += 1
 			modified = true
 		}
 	}
 
 	if !modified {
-		return nil
+		return numOfDeletedCNameRecords, nil
 	}
 
 	rawRecordsSlice := []string{}
@@ -321,7 +328,7 @@ func (p *Client) DeleteCNameRecords(domains []string) error {
 
 	payloadString, err := json.Marshal(payload)
 	if err != nil {
-		return err
+		return numOfDeletedCNameRecords, err
 	}
 
 	if p.sid == "" {
@@ -331,7 +338,7 @@ func (p *Client) DeleteCNameRecords(domains []string) error {
 	headers["X-FTL-SID"] = p.sid
 	resp, statusCode, err := common.Patch(&p.Client, p.baseURL+"/config", headers, string(payloadString))
 	if err != nil {
-		return err
+		return numOfDeletedCNameRecords, err
 	}
 	if statusCode == 401 {
 		p.refreshAuth()
@@ -340,10 +347,10 @@ func (p *Client) DeleteCNameRecords(domains []string) error {
 	if statusCode >= 400 {
 		var errorResponse ErrorResponse
 		json.Unmarshal([]byte(resp), &errorResponse)
-		return fmt.Errorf("%v. %v", errorResponse.Error.Message, errorResponse.Error.Hint)
+		return numOfDeletedCNameRecords, fmt.Errorf("%v. %v", errorResponse.Error.Message, errorResponse.Error.Hint)
 	}
 
-	return nil
+	return numOfDeletedCNameRecords, nil
 }
 
 func (p *Client) refreshAuth() {

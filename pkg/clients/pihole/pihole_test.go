@@ -100,7 +100,8 @@ func TestAddDnsRecords(t *testing.T) {
 		// Manually set the session ID that the login step would have provided
 		client.sid = "test-sid"
 
-		err := client.AddDnsRecords([]string{"test1.com", "test2.com"}, "1.2.3.4")
+		count, err := client.AddDnsRecords([]string{"test1.com", "test2.com"}, "1.2.3.4")
+		assert.Equal(t, 2, count)
 		assert.NoError(t, err)
 	})
 }
@@ -140,7 +141,8 @@ func TestDeleteDnsRecords(t *testing.T) {
 		defer server.Close()
 		client.sid = "test-sid"
 
-		err := client.DeleteDnsRecords([]string{"two.com", "three.com"})
+		count, err := client.DeleteDnsRecords([]string{"two.com", "three.com"})
+		assert.Equal(t, 2, count)
 		assert.NoError(t, err)
 		assert.True(t, patchCalled, "The PATCH endpoint was not called")
 	})
@@ -163,7 +165,8 @@ func TestDeleteDnsRecords(t *testing.T) {
 		defer server.Close()
 		client.sid = "test-sid"
 
-		err := client.DeleteDnsRecords([]string{"non-existent.com"})
+		count, err := client.DeleteDnsRecords([]string{"non-existent.com"})
+		assert.Equal(t, 0, count)
 		assert.NoError(t, err)
 		assert.False(t, patchCalled, "The PATCH endpoint was called unexpectedly")
 	})
@@ -251,7 +254,8 @@ func TestAddCNameRecords(t *testing.T) {
 		// Manually set the session ID that the login step would have provided
 		client.sid = "test-sid"
 
-		err := client.AddCNameRecords([]string{"test1.com", "test2.com"}, "test.two.com")
+		count, err := client.AddCNameRecords([]string{"test1.com", "test2.com"}, "test.two.com")
+		assert.Equal(t, 2, count)
 		assert.NoError(t, err)
 	})
 }
@@ -291,7 +295,8 @@ func TestDeleteCNameRecords(t *testing.T) {
 		defer server.Close()
 		client.sid = "test-sid"
 
-		err := client.DeleteCNameRecords([]string{"two.com", "three.com"})
+		count, err := client.DeleteCNameRecords([]string{"two.com", "three.com"})
+		assert.Equal(t, 2, count)
 		assert.NoError(t, err)
 		assert.True(t, patchCalled, "The PATCH endpoint was not called")
 	})
@@ -314,7 +319,8 @@ func TestDeleteCNameRecords(t *testing.T) {
 		defer server.Close()
 		client.sid = "test-sid"
 
-		err := client.DeleteCNameRecords([]string{"non-existent.com"})
+		count, err := client.DeleteCNameRecords([]string{"non-existent.com"})
+		assert.Equal(t, 0, count)
 		assert.NoError(t, err)
 		assert.False(t, patchCalled, "The PATCH endpoint was called unexpectedly")
 	})

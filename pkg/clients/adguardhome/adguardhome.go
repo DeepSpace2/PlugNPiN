@@ -9,6 +9,7 @@ import (
 
 	"github.com/deepspace2/plugnpin/pkg/clients/common"
 	"github.com/deepspace2/plugnpin/pkg/logging"
+	"github.com/deepspace2/plugnpin/pkg/metrics"
 )
 
 var log = logging.GetLogger("adguardhome")
@@ -28,8 +29,10 @@ func NewClient(baseURL, username, password string) *Client {
 	base64encodedCredentials := base64.StdEncoding.EncodeToString([]byte(fmt.Appendf([]byte{}, "%s:%s", username, password)))
 	headers["authorization"] = fmt.Sprintf("Basic %s", base64encodedCredentials)
 	return &Client{
-		http.Client{},
-		fmt.Sprintf("%v/control", baseURL),
+		Client: http.Client{
+			Transport: common.NewInstrumentedRoundTripper(metrics.ADGUARD_HOME, metrics.ObserveApiRequestDuration),
+		},
+		baseURL: fmt.Sprintf("%v/control", baseURL),
 	}
 }
 
@@ -48,10 +51,10 @@ func (ad *Client) GetDnsRewrites() (DnsRewrites, error) {
 	return dnsRewrites, nil
 }
 
-func (ad *Client) AddDnsRewrites(domains []string, ip string) error {
+func (ad *Client) AddDnsRewrites(domains []string, ip string) (numOfAddedRewrites int, err error) {
 	existingRecords, err := ad.GetDnsRewrites()
 	if err != nil {
-		return err
+		return numOfAddedRewrites, err
 	}
 
 	for _, domain := range domains {
@@ -64,38 +67,42 @@ func (ad *Client) AddDnsRewrites(domains []string, ip string) error {
 
 		payload, err := json.Marshal(DnsRewrite{Answer: ip, Domain: domain, Enabled: true})
 		if err != nil {
-			return err
+			return numOfAddedRewrites, err
 		}
 		payloadString := string(payload)
 		_, statusCode, err := common.Post(&ad.Client, ad.baseURL+"/rewrite/add", headers, &payloadString)
 		if err != nil {
-			return err
+			return numOfAddedRewrites, err
 		}
 
 		if statusCode == 401 {
-			return errors.New("Unauthorized")
+			return numOfAddedRewrites, errors.New("Unauthorized")
 		}
+
+		numOfAddedRewrites += 1
 	}
 
-	return nil
+	return numOfAddedRewrites, nil
 }
 
-func (ad *Client) DeleteDnsRewrites(domains []string, ip string) error {
+func (ad *Client) DeleteDnsRewrites(domains []string, ip string) (numOfDeletedRewrites int, err error) {
 	for _, domain := range domains {
 		payload, err := json.Marshal(DnsRewrite{Answer: ip, Domain: domain, Enabled: true})
 		if err != nil {
-			return err
+			return numOfDeletedRewrites, err
 		}
 		payloadString := string(payload)
 		_, statusCode, err := common.Post(&ad.Client, ad.baseURL+"/rewrite/delete", headers, &payloadString)
 		if err != nil {
-			return err
+			return numOfDeletedRewrites, err
 		}
 
 		if statusCode == 401 {
-			return errors.New("Unauthorized")
+			return numOfDeletedRewrites, errors.New("Unauthorized")
 		}
+
+		numOfDeletedRewrites += 1
 	}
 
-	return nil
+	return numOfDeletedRewrites, nil
 }

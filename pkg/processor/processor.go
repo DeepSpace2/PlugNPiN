@@ -14,6 +14,7 @@ import (
 	"github.com/deepspace2/plugnpin/pkg/clients/pihole"
 	"github.com/deepspace2/plugnpin/pkg/errors"
 	"github.com/deepspace2/plugnpin/pkg/logging"
+	"github.com/deepspace2/plugnpin/pkg/metrics"
 )
 
 var log = logging.GetLogger("processor")
@@ -75,6 +76,7 @@ func (p *Processor) ListenForEvents(ctx context.Context) {
 
 func (p *Processor) RunOnce(ctx context.Context) {
 	for _, dockerClient := range p.dockerClients {
+		scanStartTime := time.Now()
 		containers, err := dockerClient.GetRelevantContainers()
 		if err != nil {
 			log.Error("Failed to get containers", "host", dockerClient.DisplayHost, "error", err)
@@ -82,10 +84,14 @@ func (p *Processor) RunOnce(ctx context.Context) {
 		}
 
 		log.Info(fmt.Sprintf("Found %v containers", len(containers)), "host", dockerClient.DisplayHost)
+		metrics.SetDiscoveredContainers(dockerClient.DisplayHost, len(containers))
 
 		for _, container := range containers {
 			p.preprocessContainer(ctx, container, dockerClient)
 		}
+
+		scanDurationSeconds := time.Since(scanStartTime).Seconds()
+		metrics.ObserveScanDuration(dockerClient.DisplayHost, scanDurationSeconds)
 	}
 	log.Info("Done")
 }
@@ -143,15 +149,21 @@ func (p *Processor) handleAdguardHome(ctx context.Context, containerEvent events
 		switch containerEvent {
 		case events.ActionStart, events.ActionHealthStatusHealthy:
 			log.Info("Adding a DNS rewrite to AdGuard Home", "domains", urls, "answer", ip)
-			err := p.adguardHomeClient.AddDnsRewrites(urls, ip)
+			numOfAddedRewrites, err := p.adguardHomeClient.AddDnsRewrites(urls, ip)
 			if err != nil {
 				log.Error("Failed to add a DNS rewrite to AdGuard Home", "domains", urls, "answer", ip, "error", err)
+				metrics.IncrementAdguardHomeApiRequestErrors(metrics.ADD_DNS_REWRITE)
+			} else {
+				metrics.IncrementAdguardHomeEntriesCreated(numOfAddedRewrites)
 			}
 		case events.ActionDie:
 			log.Info("Deleting DNS rewrite from AdGuard Home", "domains", urls)
-			err := p.adguardHomeClient.DeleteDnsRewrites(urls, ip)
+			numOfDeletedRewrites, err := p.adguardHomeClient.DeleteDnsRewrites(urls, ip)
 			if err != nil {
 				log.Error("Failed to delete DNS rewrite from AdGuard Home", "domains", urls, "error", err)
+				metrics.IncrementAdguardHomeApiRequestErrors(metrics.DELETE_DNS_REWRITE)
+			} else {
+				metrics.IncrementAdguardHomeEntriesDeleted(numOfDeletedRewrites)
 			}
 		}
 	}
@@ -163,33 +175,49 @@ func (p *Processor) handlePiHole(ctx context.Context, containerEvent events.Acti
 	if p.piholeClient != nil {
 		switch containerEvent {
 		case events.ActionStart, events.ActionHealthStatusHealthy:
+			var numOfAddedEntries int
+			var err error
+
 			if piholeOptions.TargetDomain == "" {
 				log.Info("Adding local DNS records to Pi-Hole", "urls", urls, "ip", ip)
-				err := p.piholeClient.AddDnsRecords(urls, ip)
+				numOfAddedEntries, err = p.piholeClient.AddDnsRecords(urls, ip)
 				if err != nil {
 					log.Error("Failed to add local DNS records to Pi-Hole", "urls", urls, "ip", ip, "error", err)
+					metrics.IncrementPiHoleApiRequestErrors(metrics.ADD_DNS_RECORD)
+					return
 				}
 			} else {
 				log.Info("Adding local CNAME records to Pi-Hole", "urls", urls, "targetDomain", piholeOptions.TargetDomain)
-				err := p.piholeClient.AddCNameRecords(urls, piholeOptions.TargetDomain)
+				numOfAddedEntries, err = p.piholeClient.AddCNameRecords(urls, piholeOptions.TargetDomain)
 				if err != nil {
 					log.Error("Failed to add local CNAME records to Pi-Hole", "urls", urls, "targetDomain", piholeOptions.TargetDomain, "error", err)
+					metrics.IncrementPiHoleApiRequestErrors(metrics.ADD_CNAME_RECORD)
+					return
 				}
 			}
+			metrics.IncrementPiHoleEntriesCreated(numOfAddedEntries)
 		case events.ActionDie:
+			var numOfDeletedEntries int
+			var err error
+
 			if piholeOptions.TargetDomain == "" {
 				log.Info("Deleting local DNS records from Pi-Hole", "urls", urls)
-				err := p.piholeClient.DeleteDnsRecords(urls)
+				numOfDeletedEntries, err = p.piholeClient.DeleteDnsRecords(urls)
 				if err != nil {
 					log.Error("Failed to delete local DNS records from Pi-Hole", "urls", urls, "error", err)
+					metrics.IncrementPiHoleApiRequestErrors(metrics.DELETE_DNS_RECORD)
+					return
 				}
 			} else {
 				log.Info("Deleting local CNAME records from Pi-Hole", "urls", urls, "targetDomain", piholeOptions.TargetDomain)
-				err := p.piholeClient.DeleteCNameRecords(urls)
+				numOfDeletedEntries, err = p.piholeClient.DeleteCNameRecords(urls)
 				if err != nil {
 					log.Error("Failed to delete local CNAME records from Pi-Hole", "urls", urls, "targetDomain", piholeOptions.TargetDomain, "error", err)
+					metrics.IncrementPiHoleApiRequestErrors(metrics.DELETE_CNAME_RECORD)
+					return
 				}
 			}
+			metrics.IncrementPiHoleEntriesDeleted(numOfDeletedEntries)
 		}
 	}
 }
@@ -221,6 +249,7 @@ func (p *Processor) handleNpm(ctx context.Context, containerEvent events.Action,
 			npmAccessListID, err := p.npmClient.GetAccessListIDByName(npmProxyHostOptions.AccessListName)
 			if err != nil {
 				log.Error("Not creating Nginx Proxy Manager entry", "error", err)
+				metrics.IncrementNpmApiRequestErrors(metrics.GET_ACCESS_LIST_ID)
 				return
 			}
 			npmProxyHost.AccessListID = npmAccessListID
@@ -230,6 +259,7 @@ func (p *Processor) handleNpm(ctx context.Context, containerEvent events.Action,
 			npmCertificateID, err := p.npmClient.GetCertificateIDByName(npmProxyHostOptions.CertificateName)
 			if err != nil {
 				log.Error("Not creating Nginx Proxy Manager entry", "error", err)
+				metrics.IncrementNpmApiRequestErrors(metrics.GET_CERTIFICATE_ID)
 				return
 			}
 			npmProxyHost.CertificateID = npmCertificateID
@@ -237,15 +267,25 @@ func (p *Processor) handleNpm(ctx context.Context, containerEvent events.Action,
 
 		log.Info("Adding entry to Nginx Proxy Manager")
 
-		err := p.npmClient.AddProxyHost(npmProxyHost)
+		addedNpmEntry, err := p.npmClient.AddProxyHost(npmProxyHost)
 		if err != nil {
 			log.Error("Failed to add entry to Nginx Proxy Manager", "error", err)
+			metrics.IncrementNpmApiRequestErrors(metrics.ADD_PROXY_HOST)
+			return
+		}
+		if addedNpmEntry {
+			metrics.IncrementNpmEntriesCreated()
 		}
 	case events.ActionDie:
 		log.Info("Deleting entry from Nginx Proxy Manager")
-		err := p.npmClient.DeleteProxyHosts(urls)
+		deletedNpmEntry, err := p.npmClient.DeleteProxyHosts(urls)
 		if err != nil {
 			log.Error("Failed to delete entry from Nginx Proxy Manager", "error", err)
+			metrics.IncrementNpmApiRequestErrors(metrics.DELETE_PROXY_HOST)
+			return
+		}
+		if deletedNpmEntry {
+			metrics.IncrementNpmEntriesDeleted()
 		}
 	}
 }
@@ -296,6 +336,8 @@ func (p *Processor) processContainer(ctx context.Context, containerEvent events.
 	}
 
 	log.Info(msg, "ip", ip, "port", port, "urls", urls)
+
+	metrics.IncrementHandledDockerEvents(dockerClient.DisplayHost, string(containerEvent))
 
 	if p.npmClient != nil {
 		npmHost := p.npmClient.GetIP()

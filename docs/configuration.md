@@ -6,7 +6,9 @@
 
 ## Docker Secrets
 
-Starting with version [:octicons-tag-24: 1.0.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v1.0.0){ .md-tag target="_blank" }
+[:octicons-tag-24: 1.0.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v1.0.0){ .md-tag target="_blank" }
+
+
 PlugNPiN supports [Docker Secrets](https://docs.docker.com/compose/how-tos/use-secrets/){: target="_blank" } for managing sensitive credentials and host URLs. This is the recommended approach for production deployments.
 
 **Precedence:** Environment variables always take precedence over Docker Secrets.
@@ -34,11 +36,13 @@ PlugNPiN supports [Docker Secrets](https://docs.docker.com/compose/how-tos/use-s
 |---|---|---|
 | `ADGUARD_HOME_DISABLED`<br>[:octicons-tag-24: 0.8.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v0.8.0){ .md-tag target="_blank" } | Set to `false` to enable AdGuard Home functionality | `true` |
 | `DEBUG`<br>[:octicons-tag-24: 0.1.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v0.1.0){ .md-tag target="_blank" } | Set to `true` to enable DEBUG level logs | `false` |
-| `DOCKER_HOST`<br>[:octicons-tag-24: 0.1.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v0.1.0){ .md-tag target="_blank" } | The URL of a docker socket proxy. If set, you don't need to mount the docker socket as a volume. Querying containers must be allowed (typically done by setting the `CONTAINERS` environment variable to `1`). | *None* |
 | `DOCKER_HOSTS`<br>[:octicons-tag-24: 0.9.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v0.9.0){ .md-tag target="_blank" } | Comma-separated list of multiple docker hosts to monitor, with an empty string meaning the default local host.<br>For example `DOCKER_HOSTS=,tcp://192.168.0.101:2375` | `""` |
+| `DOCKER_HOST`<br>[:octicons-tag-24: 0.1.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v0.1.0){ .md-tag target="_blank" } | The URL of a docker socket proxy. If set, you don't need to mount the docker socket as a volume. Querying containers must be allowed (typically done by setting the `CONTAINERS` environment variable to `1`). | *None* |
+| `METRICS`<br>[:octicons-tag-24: 1.0.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v1.0.0){ .md-tag target="_blank" } | Exposes a `/metrics` endpoint for Prometheus scraping. See [Monitoring → Prometheus](./monitoring.md#prometheus). | `false` |
+| `METRICS_SERVER_PORT`<br>[:octicons-tag-24: 1.0.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v1.0.0){ .md-tag target="_blank" } | Port for the metrics endpoint. See [Monitoring → Prometheus](./monitoring.md#prometheus). | `9100` |
 | `PIHOLE_DISABLED`<br>[:octicons-tag-24: 0.6.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v0.6.0){ .md-tag target="_blank" } | Set to `true` to disable Pi-Hole functionality | `false` |
 | `RUN_INTERVAL`<br>[:octicons-tag-24: 0.1.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v0.1.0){ .md-tag target="_blank" } | The interval at which to scan for new containers, in Go's [`time.ParseDuration`](<https://go.dev/pkg/time/#ParseDuration>){: target="_blank" } format. Set to `0` to run once and exit. | `1h` |
-| `TZ`<br>[:octicons-tag-24: 0.1.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v0.1.0){ .md-tag target="_blank" } | Customise the timezone. | *None* |
+| `TZ`<br>[:octicons-tag-24: 0.1.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v0.1.0){ .md-tag target="_blank" } | Customise the timezone. | `""` |
 
 ## Per Container Configuration
 

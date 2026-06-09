@@ -12,6 +12,7 @@ import (
 
 	"github.com/deepspace2/plugnpin/pkg/clients/common"
 	"github.com/deepspace2/plugnpin/pkg/logging"
+	"github.com/deepspace2/plugnpin/pkg/metrics"
 )
 
 var log = logging.GetLogger("npm")
@@ -29,7 +30,9 @@ type Client struct {
 
 func NewClient(baseURL, identity, secret string) *Client {
 	return &Client{
-		Client:  http.Client{},
+		Client: http.Client{
+			Transport: common.NewInstrumentedRoundTripper(metrics.NPM, metrics.ObserveApiRequestDuration),
+		},
 		baseURL: fmt.Sprintf("%v/api", baseURL),
 		headers: map[string]string{
 			"content-type": "application/json",
@@ -203,40 +206,40 @@ func (n *Client) GetAccessListIDByName(name string) (int, error) {
 	return 0, fmt.Errorf("access list with name %q does not exist", name)
 }
 
-func (n *Client) AddProxyHost(host ProxyHost) error {
+func (n *Client) AddProxyHost(host ProxyHost) (bool, error) {
 	existingProxyHosts, err := n.GetProxyHosts()
 	if err != nil {
-		return err
+		return false, err
 	}
 	for _, domainName := range host.DomainNames {
 		if _, exists := existingProxyHosts[domainName]; exists {
-			return nil
+			return false, nil
 		}
 	}
 
 	payloadBytes, err := json.Marshal(host)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	payloadString := string(payloadBytes)
 	resp, statusCode, err := n.makeRequest(http.MethodPost, n.baseURL+"/nginx/proxy-hosts", &payloadString)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	if statusCode >= 400 {
 		var errorResponse ErrorResponse
 		json.Unmarshal([]byte(resp), &errorResponse)
-		return errors.New(errorResponse.Error.Message)
+		return false, errors.New(errorResponse.Error.Message)
 	}
-	return nil
+	return true, nil
 }
 
-func (n *Client) DeleteProxyHosts(domains []string) error {
+func (n *Client) DeleteProxyHosts(domains []string) (bool, error) {
 	existingProxyHosts, err := n.GetProxyHosts()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	var hostID int
@@ -250,19 +253,19 @@ func (n *Client) DeleteProxyHosts(domains []string) error {
 	}
 
 	if !found {
-		return nil
+		return false, nil
 	}
 
 	url := fmt.Sprintf("%v/nginx/proxy-hosts/%v", n.baseURL, hostID)
 	resp, statusCode, err := n.makeRequest(http.MethodDelete, url, nil)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	if statusCode >= 400 {
 		var errorResponse ErrorResponse
 		json.Unmarshal([]byte(resp), &errorResponse)
-		return errors.New(errorResponse.Error.Message)
+		return false, errors.New(errorResponse.Error.Message)
 	}
-	return nil
+	return true, nil
 }
