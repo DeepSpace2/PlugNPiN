@@ -12,6 +12,7 @@ import (
 	"github.com/deepspace2/plugnpin/pkg/clients"
 	"github.com/deepspace2/plugnpin/pkg/config"
 	"github.com/deepspace2/plugnpin/pkg/logging"
+	"github.com/deepspace2/plugnpin/pkg/metrics"
 	"github.com/deepspace2/plugnpin/pkg/processor"
 )
 
@@ -53,6 +54,19 @@ func main() {
 	}
 
 	var wg sync.WaitGroup
+
+	if config.Metrics {
+		errCh := make(chan error, 1)
+		wg.Go(func() {
+			metrics.Serve(ctx, config.MetricsServerPort, errCh)
+		})
+		if err := <-errCh; err != nil {
+			log.Error("Failed to start metrics server", "error", err)
+			stop()
+			wg.Wait()
+			os.Exit(1)
+		}
+	}
 
 	wg.Go(func() {
 		proc.ListenForEvents(ctx)

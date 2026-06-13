@@ -21,8 +21,6 @@ var (
 )
 
 type Config struct {
-	Debug bool `env:"DEBUG" envDefault:"false"`
-
 	AdguardHomeDisabled bool   `env:"ADGUARD_HOME_DISABLED" envDefault:"true"`
 	AdguardHomeHost     string `env:"ADGUARD_HOME_HOST" secret:"true"`
 	AdguardHomePassword string `env:"ADGUARD_HOME_PASSWORD" secret:"true"`
@@ -36,9 +34,13 @@ type Config struct {
 	PiholeHost     string `env:"PIHOLE_HOST" secret:"true"`
 	PiholePassword string `env:"PIHOLE_PASSWORD" secret:"true"`
 
-	DockerHost  string        `env:"DOCKER_HOST"`
-	DockerHosts []string      `env:"DOCKER_HOSTS"`
-	RunInterval time.Duration `env:"RUN_INTERVAL" envDefault:"1h"`
+	DockerHost  string   `env:"DOCKER_HOST"`
+	DockerHosts []string `env:"DOCKER_HOSTS"`
+
+	Debug             bool          `env:"DEBUG" envDefault:"false"`
+	Metrics           bool          `env:"METRICS" envDefault:"false"`
+	MetricsServerPort int           `env:"METRICS_SERVER_PORT" envDefault:"9100"`
+	RunInterval       time.Duration `env:"RUN_INTERVAL" envDefault:"1h"`
 }
 
 func getValueFromSecret(secretFile string) (string, error) {
@@ -94,7 +96,11 @@ func Get() (*Config, error) {
 
 func (c *Config) Validate() error {
 	if c.RunInterval < 0 {
-		return errors.New(`env: environment variable 'RUN_INTERVAL' must be >= 0`)
+		return errors.New(`env: 'RUN_INTERVAL' must be >= 0`)
+	}
+
+	if c.MetricsServerPort < 1 || c.MetricsServerPort > 65535 {
+		return fmt.Errorf(`env: 'METRICS_SERVER_PORT' must be between 1 and 65535, got %d`, c.MetricsServerPort)
 	}
 
 	if c.NpmHost == "" {

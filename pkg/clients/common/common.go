@@ -1,10 +1,48 @@
 package common
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
+	"time"
+
+	"github.com/deepspace2/plugnpin/pkg/metrics"
 )
+
+type instrumentedRoundTripper struct {
+	service string
+	wrapped http.RoundTripper
+	observe metrics.ObserveFunc
+}
+
+func NewInstrumentedRoundTripper(service string, observe metrics.ObserveFunc) http.RoundTripper {
+	if observe == nil {
+		observe = func(string, string, string, float64) {}
+	}
+	return &instrumentedRoundTripper{
+		service: service,
+		wrapped: http.DefaultTransport,
+		observe: observe,
+	}
+}
+
+func (rt *instrumentedRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
+	start := time.Now()
+	resp, err := rt.wrapped.RoundTrip(r)
+	duration := time.Since(start).Seconds()
+
+	var statusGroup string
+	if resp == nil {
+		statusGroup = "transport_error"
+	} else {
+		statusGroup = fmt.Sprintf("%dxx", resp.StatusCode/100)
+	}
+
+	rt.observe(rt.service, r.Method, statusGroup, duration)
+
+	return resp, err
+}
 
 func setHeaders(req *http.Request, headers map[string]string) {
 	for k, v := range headers {

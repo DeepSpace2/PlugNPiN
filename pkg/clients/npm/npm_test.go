@@ -83,7 +83,7 @@ func TestAddProxyHost(t *testing.T) {
 		hostToAdd := ProxyHost{
 			DomainNames: []string{"new-host.com"},
 		}
-		err := client.AddProxyHost(hostToAdd)
+		_, err := client.AddProxyHost(hostToAdd)
 		assert.NoError(t, err)
 	})
 
@@ -110,7 +110,7 @@ func TestAddProxyHost(t *testing.T) {
 		hostToAdd := ProxyHost{
 			DomainNames: []string{"existing-host.com"},
 		}
-		err := client.AddProxyHost(hostToAdd)
+		_, err := client.AddProxyHost(hostToAdd)
 		// Expect no error, and no POST call would have been made.
 		assert.NoError(t, err)
 	})
@@ -149,7 +149,7 @@ func TestDeleteProxyHosts(t *testing.T) {
 		client.headers["authorization"] = "Bearer " + testToken
 		defer server.Close()
 
-		err := client.DeleteProxyHosts([]string{"host2.com"})
+		_, err := client.DeleteProxyHosts([]string{"host2.com"})
 		assert.NoError(t, err)
 		assert.True(t, deleteCalled, "The DELETE endpoint was not called")
 	})
@@ -173,7 +173,7 @@ func TestDeleteProxyHosts(t *testing.T) {
 		client.tokenExpireTime = time.Now().Add(24 * time.Hour)
 		defer server.Close()
 
-		err := client.DeleteProxyHosts([]string{"non-existing-host.com"})
+		_, err := client.DeleteProxyHosts([]string{"non-existing-host.com"})
 		assert.NoError(t, err)
 		assert.False(t, deleteCalled, "The DELETE endpoint was called unexpectedly")
 	})

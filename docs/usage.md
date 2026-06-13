@@ -2,9 +2,16 @@
 
 ## CLI Flags
 
+
+!!! tip
+
+    Hover over a flag to reveal a 'copy to clipboard' button
+
+
 | Flag {: style="width:35%" } | Description                                                                                                                            |
 | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | `--dry-run`, `-d`           | Simulates the process of adding DNS/CNAME records and proxy hosts without making any actual changes to Pi-Hole or Nginx Proxy Manager. |
+
 
 ## Docker Compose
 
@@ -53,8 +60,17 @@ It is **highly recommended** to use a Docker socket proxy to avoid giving the co
           - NGINX_PROXY_MANAGER_USERNAME=...
           - NGINX_PROXY_MANAGER_PASSWORD=...
           - PIHOLE_HOST=...
-          - PIHOLE_PASSWORD...
+          - PIHOLE_PASSWORD=...
         volumes:
           - /var/run/docker.sock:/var/run/docker.sock:ro
         restart: unless-stopped
+    ```
+
+!!! note
+    To use [CLI flags](./usage.md#cli-flags) it is required to specify `#!yaml command:`
+
+    ```yaml
+    services:
+      plugnpin:
+        command: ["./plugnpin", "--dry-run"]
     ```
