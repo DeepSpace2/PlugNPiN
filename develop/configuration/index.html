@@ -534,6 +534,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../monitoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Monitoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../contributing/" class="md-nav__link">
         
   
@@ -580,8 +607,8 @@
 <p>Hover over any variable or label to reveal a 'copy to clipboard' button</p>
 </div>
 <h2 id="docker-secrets">Docker Secrets</h2>
-<p>Starting with version <a class="md-tag" href="https://github.com/DeepSpace2/plugnpin/releases/tag/v1.0.0" target="_blank"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.75 6.5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5"/><path d="M2.5 1h8.44a1.5 1.5 0 0 1 1.06.44l10.25 10.25a1.5 1.5 0 0 1 0 2.12l-8.44 8.44a1.5 1.5 0 0 1-2.12 0L1.44 12A1.5 1.5 0 0 1 1 10.94V2.5A1.5 1.5 0 0 1 2.5 1m0 1.5v8.44l10.25 10.25 8.44-8.44L10.94 2.5Z"/></svg></span> 1.0.0</a>
-PlugNPiN supports <a href="https://docs.docker.com/compose/how-tos/use-secrets/" target="_blank">Docker Secrets</a> for managing sensitive credentials and host URLs. This is the recommended approach for production deployments.</p>
+<p><a class="md-tag" href="https://github.com/DeepSpace2/plugnpin/releases/tag/v1.0.0" target="_blank"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.75 6.5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5"/><path d="M2.5 1h8.44a1.5 1.5 0 0 1 1.06.44l10.25 10.25a1.5 1.5 0 0 1 0 2.12l-8.44 8.44a1.5 1.5 0 0 1-2.12 0L1.44 12A1.5 1.5 0 0 1 1 10.94V2.5A1.5 1.5 0 0 1 2.5 1m0 1.5v8.44l10.25 10.25 8.44-8.44L10.94 2.5Z"/></svg></span> 1.0.0</a></p>
+<p>PlugNPiN supports <a href="https://docs.docker.com/compose/how-tos/use-secrets/" target="_blank">Docker Secrets</a> for managing sensitive credentials and host URLs. This is the recommended approach for production deployments.</p>
 <p><strong>Precedence:</strong> Environment variables always take precedence over Docker Secrets.</p>
 <p><strong>Usage:</strong> Secrets' filenames must match the corresponding environment variable.</p>
 <h2 id="environment-variables">Environment Variables</h2>
@@ -658,14 +685,24 @@ PlugNPiN supports <a href="https://docs.docker.com/compose/how-tos/use-secrets/"
 <td><code>false</code></td>
 </tr>
 <tr>
+<td><code>DOCKER_HOSTS</code><br><a class="md-tag" href="https://github.com/DeepSpace2/plugnpin/releases/tag/v0.9.0" target="_blank"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.75 6.5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5"/><path d="M2.5 1h8.44a1.5 1.5 0 0 1 1.06.44l10.25 10.25a1.5 1.5 0 0 1 0 2.12l-8.44 8.44a1.5 1.5 0 0 1-2.12 0L1.44 12A1.5 1.5 0 0 1 1 10.94V2.5A1.5 1.5 0 0 1 2.5 1m0 1.5v8.44l10.25 10.25 8.44-8.44L10.94 2.5Z"/></svg></span> 0.9.0</a></td>
+<td>Comma-separated list of multiple docker hosts to monitor, with an empty string meaning the default local host.<br>For example <code>DOCKER_HOSTS=,tcp://192.168.0.101:2375</code></td>
+<td><code>""</code></td>
+</tr>
+<tr>
 <td><code>DOCKER_HOST</code><br><a class="md-tag" href="https://github.com/DeepSpace2/plugnpin/releases/tag/v0.1.0" target="_blank"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.75 6.5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5"/><path d="M2.5 1h8.44a1.5 1.5 0 0 1 1.06.44l10.25 10.25a1.5 1.5 0 0 1 0 2.12l-8.44 8.44a1.5 1.5 0 0 1-2.12 0L1.44 12A1.5 1.5 0 0 1 1 10.94V2.5A1.5 1.5 0 0 1 2.5 1m0 1.5v8.44l10.25 10.25 8.44-8.44L10.94 2.5Z"/></svg></span> 0.1.0</a></td>
 <td>The URL of a docker socket proxy. If set, you don't need to mount the docker socket as a volume. Querying containers must be allowed (typically done by setting the <code>CONTAINERS</code> environment variable to <code>1</code>).</td>
 <td><em>None</em></td>
 </tr>
 <tr>
-<td><code>DOCKER_HOSTS</code><br><a class="md-tag" href="https://github.com/DeepSpace2/plugnpin/releases/tag/v0.9.0" target="_blank"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.75 6.5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5"/><path d="M2.5 1h8.44a1.5 1.5 0 0 1 1.06.44l10.25 10.25a1.5 1.5 0 0 1 0 2.12l-8.44 8.44a1.5 1.5 0 0 1-2.12 0L1.44 12A1.5 1.5 0 0 1 1 10.94V2.5A1.5 1.5 0 0 1 2.5 1m0 1.5v8.44l10.25 10.25 8.44-8.44L10.94 2.5Z"/></svg></span> 0.9.0</a></td>
-<td>Comma-separated list of multiple docker hosts to monitor, with an empty string meaning the default local host.<br>For example <code>DOCKER_HOSTS=,tcp://192.168.0.101:2375</code></td>
-<td><code>""</code></td>
+<td><code>METRICS</code><br><a class="md-tag" href="https://github.com/DeepSpace2/plugnpin/releases/tag/v1.0.0" target="_blank"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.75 6.5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5"/><path d="M2.5 1h8.44a1.5 1.5 0 0 1 1.06.44l10.25 10.25a1.5 1.5 0 0 1 0 2.12l-8.44 8.44a1.5 1.5 0 0 1-2.12 0L1.44 12A1.5 1.5 0 0 1 1 10.94V2.5A1.5 1.5 0 0 1 2.5 1m0 1.5v8.44l10.25 10.25 8.44-8.44L10.94 2.5Z"/></svg></span> 1.0.0</a></td>
+<td>Exposes a <code>/metrics</code> endpoint for Prometheus scraping. See <a href="../monitoring/#prometheus">Monitoring → Prometheus</a>.</td>
+<td><code>false</code></td>
+</tr>
+<tr>
+<td><code>METRICS_SERVER_PORT</code><br><a class="md-tag" href="https://github.com/DeepSpace2/plugnpin/releases/tag/v1.0.0" target="_blank"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.75 6.5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5"/><path d="M2.5 1h8.44a1.5 1.5 0 0 1 1.06.44l10.25 10.25a1.5 1.5 0 0 1 0 2.12l-8.44 8.44a1.5 1.5 0 0 1-2.12 0L1.44 12A1.5 1.5 0 0 1 1 10.94V2.5A1.5 1.5 0 0 1 2.5 1m0 1.5v8.44l10.25 10.25 8.44-8.44L10.94 2.5Z"/></svg></span> 1.0.0</a></td>
+<td>Port for the metrics endpoint. See <a href="../monitoring/#prometheus">Monitoring → Prometheus</a>.</td>
+<td><code>9100</code></td>
 </tr>
 <tr>
 <td><code>PIHOLE_DISABLED</code><br><a class="md-tag" href="https://github.com/DeepSpace2/plugnpin/releases/tag/v0.6.0" target="_blank"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.75 6.5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5"/><path d="M2.5 1h8.44a1.5 1.5 0 0 1 1.06.44l10.25 10.25a1.5 1.5 0 0 1 0 2.12l-8.44 8.44a1.5 1.5 0 0 1-2.12 0L1.44 12A1.5 1.5 0 0 1 1 10.94V2.5A1.5 1.5 0 0 1 2.5 1m0 1.5v8.44l10.25 10.25 8.44-8.44L10.94 2.5Z"/></svg></span> 0.6.0</a></td>
@@ -680,7 +717,7 @@ PlugNPiN supports <a href="https://docs.docker.com/compose/how-tos/use-secrets/"
 <tr>
 <td><code>TZ</code><br><a class="md-tag" href="https://github.com/DeepSpace2/plugnpin/releases/tag/v0.1.0" target="_blank"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.75 6.5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5"/><path d="M2.5 1h8.44a1.5 1.5 0 0 1 1.06.44l10.25 10.25a1.5 1.5 0 0 1 0 2.12l-8.44 8.44a1.5 1.5 0 0 1-2.12 0L1.44 12A1.5 1.5 0 0 1 1 10.94V2.5A1.5 1.5 0 0 1 2.5 1m0 1.5v8.44l10.25 10.25 8.44-8.44L10.94 2.5Z"/></svg></span> 0.1.0</a></td>
 <td>Customise the timezone.</td>
-<td><em>None</em></td>
+<td><code>""</code></td>
 </tr>
 </tbody>
 </table>
