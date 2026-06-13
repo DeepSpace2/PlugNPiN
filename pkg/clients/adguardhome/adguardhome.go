@@ -54,7 +54,7 @@ func (ad *Client) GetDnsRewrites() (DnsRewrites, error) {
 func (ad *Client) AddDnsRewrites(domains []string, ip string) (numOfAddedRewrites int, err error) {
 	existingRecords, err := ad.GetDnsRewrites()
 	if err != nil {
-		return numOfAddedRewrites, err
+		return 0, err
 	}
 
 	for _, domain := range domains {
@@ -67,19 +67,21 @@ func (ad *Client) AddDnsRewrites(domains []string, ip string) (numOfAddedRewrite
 
 		payload, err := json.Marshal(DnsRewrite{Answer: ip, Domain: domain, Enabled: true})
 		if err != nil {
-			return numOfAddedRewrites, err
+			return 0, err
 		}
 		payloadString := string(payload)
 		_, statusCode, err := common.Post(&ad.Client, ad.baseURL+"/rewrite/add", headers, &payloadString)
 		if err != nil {
-			return numOfAddedRewrites, err
+			return 0, err
 		}
 
 		if statusCode == 401 {
-			return numOfAddedRewrites, errors.New("Unauthorized")
+			return 0, errors.New("Unauthorized")
 		}
 
-		numOfAddedRewrites += 1
+		if statusCode < 400 {
+			numOfAddedRewrites += 1
+		}
 	}
 
 	return numOfAddedRewrites, nil
@@ -89,19 +91,21 @@ func (ad *Client) DeleteDnsRewrites(domains []string, ip string) (numOfDeletedRe
 	for _, domain := range domains {
 		payload, err := json.Marshal(DnsRewrite{Answer: ip, Domain: domain, Enabled: true})
 		if err != nil {
-			return numOfDeletedRewrites, err
+			return 0, err
 		}
 		payloadString := string(payload)
 		_, statusCode, err := common.Post(&ad.Client, ad.baseURL+"/rewrite/delete", headers, &payloadString)
 		if err != nil {
-			return numOfDeletedRewrites, err
+			return 0, err
 		}
 
 		if statusCode == 401 {
-			return numOfDeletedRewrites, errors.New("Unauthorized")
+			return 0, errors.New("Unauthorized")
 		}
 
-		numOfDeletedRewrites += 1
+		if statusCode < 400 {
+			numOfDeletedRewrites += 1
+		}
 	}
 
 	return numOfDeletedRewrites, nil
