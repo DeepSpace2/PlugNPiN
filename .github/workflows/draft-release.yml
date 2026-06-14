@@ -6,6 +6,30 @@ on:
       - master
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      src: ${{ steps.filter.outputs.src }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            src:
+              - '.github/release-drafter.yml'
+              - '.github/workflows/draft-release.yml'
+              - '.github/workflows/pr-build.yml'
+              - '.github/workflows/release.yml'
+              - '.github/workflows/reusable-docker-build.yml'
+              - 'pkg/**'
+              - 'main.go'
+              - 'go.*'
+              - 'Dockerfile'
+              - '.dockerignore'
+
   update_release_draft:
     runs-on: ubuntu-latest
     permissions:
@@ -17,3 +41,28 @@ jobs:
           config-name: release-drafter.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  prepare-tags:
+    needs: changes
+    if: ${{ needs.changes.outputs.src == 'true' }}
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      tags: ${{ steps.prep.outputs.tags }}
+    steps:
+      - name: Prepare image tags
+        id: prep
+        run: |
+          REPO=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')
+          echo "tags=ghcr.io/$REPO:dev" >> $GITHUB_OUTPUT
+
+  build-image:
+    needs: prepare-tags
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    uses: ./.github/workflows/reusable-docker-build.yml
+    with:
+      tags: ${{ needs.prepare-tags.outputs.tags }}
