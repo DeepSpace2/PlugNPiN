@@ -58,7 +58,11 @@ jobs:
 
   build-image:
     needs: prepare-tags
-    permissions: {}
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
     uses: ./.github/workflows/reusable-docker-build.yml
     with:
       tags: ${{ needs.prepare-tags.outputs.tags }}
