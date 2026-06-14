@@ -58,6 +58,7 @@ jobs:
 
   build-image:
     needs: prepare-tags
+    permissions: {}
     uses: ./.github/workflows/reusable-docker-build.yml
     with:
       tags: ${{ needs.prepare-tags.outputs.tags }}
