@@ -8,6 +8,8 @@ on:
 jobs:
   changes:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       src: ${{ steps.filter.outputs.src }}
     steps:
@@ -44,6 +46,7 @@ jobs:
     needs: changes
     if: ${{ needs.changes.outputs.src == 'true' }}
     runs-on: ubuntu-latest
+    permissions: {}
     outputs:
       tags: ${{ steps.prep.outputs.tags }}
     steps:
