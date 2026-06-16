@@ -78,6 +78,7 @@ func main() {
 
 	<-ctx.Done()
 	log.Info("Shutdown signal received, exiting gracefully.")
+	proc.Shutdown()
 	wg.Wait()
 	log.Info("Shutdown complete.")
 }

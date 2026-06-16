@@ -60,6 +60,62 @@ func TestLogin(t *testing.T) {
 	})
 }
 
+func TestLogout(t *testing.T) {
+	t.Run("successful logout", func(t *testing.T) {
+		deleteCalled := false
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "/api/auth", r.URL.Path)
+			assert.Equal(t, "DELETE", r.Method)
+			assert.Equal(t, "test-sid", r.Header.Get("X-FTL-SID"))
+			deleteCalled = true
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprint(w, `{"session": {"sid": "", "message": "Session deleted"}}`)
+		})
+		client, server := setupTestServer(handler)
+		defer server.Close()
+		client.sid = "test-sid"
+		client.password = "test-password"
+
+		err := client.Logout()
+
+		assert.NoError(t, err)
+		assert.True(t, deleteCalled, "DELETE /api/auth was not called")
+		assert.Empty(t, client.sid)
+		assert.Empty(t, client.password)
+	})
+
+	t.Run("no-op when already logged out", func(t *testing.T) {
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			t.Fatal("Unexpected request when sid is empty")
+		})
+		client, server := setupTestServer(handler)
+		defer server.Close()
+
+		err := client.Logout()
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("non-success status is non-fatal", func(t *testing.T) {
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "/api/auth", r.URL.Path)
+			assert.Equal(t, "DELETE", r.Method)
+			w.WriteHeader(http.StatusNotFound)
+			fmt.Fprint(w, `{}`)
+		})
+		client, server := setupTestServer(handler)
+		defer server.Close()
+		client.sid = "test-sid"
+		client.password = "test-password"
+
+		err := client.Logout()
+
+		assert.NoError(t, err)
+		assert.Empty(t, client.sid)
+		assert.Empty(t, client.password)
+	})
+}
+
 func TestAddDnsRecords(t *testing.T) {
 	t.Run("successful add multiple", func(t *testing.T) {
 		// This handler needs to handle two requests in sequence
