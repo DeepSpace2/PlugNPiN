@@ -1,0 +1,15 @@
+version: "2"
+
+run:
+  build-tags:
+    - e2e
+    - unit
+
+output:
+  formats:
+    tab:
+      path: stdout
+  sort-order:
+    - file
+    - severity
+    - linter

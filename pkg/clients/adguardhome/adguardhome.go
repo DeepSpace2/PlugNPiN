@@ -8,11 +8,8 @@ import (
 	"net/http"
 
 	"github.com/deepspace2/plugnpin/pkg/clients/common"
-	"github.com/deepspace2/plugnpin/pkg/logging"
 	"github.com/deepspace2/plugnpin/pkg/metrics"
 )
-
-var log = logging.GetLogger("adguardhome")
 
 type Client struct {
 	http.Client

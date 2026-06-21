@@ -64,7 +64,7 @@ func TestMain(m *testing.M) {
 	if err == nil {
 		logger.Info("Performing global image cleanup")
 		for image := range globalImagesToRemove {
-			dockerCli.ImageRemove(ctx, image, imageApi.RemoveOptions{
+			_, _ = dockerCli.ImageRemove(ctx, image, imageApi.RemoveOptions{
 				Force: true,
 			})
 		}
@@ -121,11 +121,11 @@ func getEnvVars() (*config, error) {
 	if err != nil {
 		return nil, err
 	}
-	var config config
-	if err := env.Parse(&config); err != nil {
+	var cfg config
+	if err := env.Parse(&cfg); err != nil {
 		return nil, err
 	}
-	return &config, nil
+	return &cfg, nil
 }
 
 func pullRequiredImages(t *testing.T, ctx context.Context, dockerApi *dockerApi.Client, containers []Container) {
@@ -147,7 +147,7 @@ func pullRequiredImages(t *testing.T, ctx context.Context, dockerApi *dockerApi.
 	}
 
 	if err := g.Wait(); err != nil {
-		cleanup(t, dockerApi, containers, nil)
+		cleanup(dockerApi, containers, nil)
 		t.Fatal(err)
 	}
 }
@@ -209,7 +209,7 @@ func startRequiredContainers(t *testing.T, ctx context.Context, dockerCli *docke
 		})
 	}
 	if err := g.Wait(); err != nil {
-		cleanup(t, dockerCli, containers, nil)
+		cleanup(dockerCli, containers, nil)
 		t.Fatal(err)
 	}
 }
@@ -284,7 +284,7 @@ func setup(t *testing.T, ctx context.Context, dockerCli *dockerApi.Client, conta
 	return dockerClient, piholeClient, npmClient, adguardHomeClient
 }
 
-func cleanup(t *testing.T, dockerCli *dockerApi.Client, containers []Container, npmClient *npm.Client) {
+func cleanup(dockerCli *dockerApi.Client, containers []Container, npmClient *npm.Client) {
 	logger.Info("In cleanup")
 
 	// Use background context for cleanup to ensure it completes even if test is canceled
@@ -293,7 +293,7 @@ func cleanup(t *testing.T, dockerCli *dockerApi.Client, containers []Container, 
 	if npmClient != nil {
 		npmProxyHosts, err := npmClient.GetProxyHosts()
 		if err == nil {
-			npmClient.DeleteProxyHosts(slices.Collect(maps.Keys(npmProxyHosts)))
+			_, _ = npmClient.DeleteProxyHosts(slices.Collect(maps.Keys(npmProxyHosts)))
 		}
 	}
 	var wg sync.WaitGroup
@@ -360,7 +360,7 @@ func TestE2E(t *testing.T) {
 	dockerClient, piholeClient, npmClient, adguardHomeClient := setup(t, ctx, dockerCli, containers)
 
 	t.Cleanup(func() {
-		cleanup(t, dockerCli, containers, npmClient)
+		cleanup(dockerCli, containers, npmClient)
 	})
 
 	time.Sleep(2 * time.Second)
@@ -408,9 +408,9 @@ func TestE2E(t *testing.T) {
 			}
 
 			// Deleting to assert delete functionality
-			piholeClient.DeleteDnsRecords(urls)
-			npmClient.DeleteProxyHosts(urls)
-			adguardHomeClient.DeleteDnsRewrites(urls, npmClient.GetIP())
+			_, _ = piholeClient.DeleteDnsRecords(urls)
+			_, _ = npmClient.DeleteProxyHosts(urls)
+			_, _ = adguardHomeClient.DeleteDnsRewrites(urls, npmClient.GetIP())
 
 			piholeDnsRecords, err := piholeClient.GetDnsRecords()
 			if err != nil {
@@ -461,7 +461,7 @@ func TestE2E_CreateOnHealthy(t *testing.T) {
 	dockerClient, piholeClient, npmClient, adguardHomeClient := setup(t, ctx, dockerCli, infraContainers)
 
 	t.Cleanup(func() {
-		cleanup(t, dockerCli, infraContainers, npmClient)
+		cleanup(dockerCli, infraContainers, npmClient)
 	})
 
 	proc := processor.New(
@@ -502,7 +502,7 @@ func TestE2E_CreateOnHealthy(t *testing.T) {
 	startRequiredContainers(t, ctx, dockerCli, testContainers)
 
 	t.Cleanup(func() {
-		dockerCli.ContainerRemove(context.Background(), testContainers[0].id, containerApi.RemoveOptions{Force: true})
+		_ = dockerCli.ContainerRemove(context.Background(), testContainers[0].id, containerApi.RemoveOptions{Force: true})
 	})
 
 	// Assert entry DOES NOT exist while unhealthy
@@ -521,8 +521,8 @@ func TestE2E_CreateOnHealthy(t *testing.T) {
 	// Wait for Docker to mark it healthy
 	logger.Info("Waiting for Docker to mark container as healthy")
 	require.Eventually(t, func() bool {
-		inspect, err := dockerCli.ContainerInspect(ctx, testContainers[0].id)
-		if err != nil {
+		inspect, inspectErr := dockerCli.ContainerInspect(ctx, testContainers[0].id)
+		if inspectErr != nil {
 			return false
 		}
 		return inspect.State.Health != nil && inspect.State.Health.Status == "healthy"
@@ -577,7 +577,7 @@ func TestE2E_CreateOnHealthy_NoHealthcheck(t *testing.T) {
 	dockerClient, _, npmClient, adguardHomeClient := setup(t, ctx, dockerCli, infraContainers)
 
 	t.Cleanup(func() {
-		cleanup(t, dockerCli, infraContainers, npmClient)
+		cleanup(dockerCli, infraContainers, npmClient)
 	})
 
 	proc := processor.New(
@@ -614,7 +614,7 @@ func TestE2E_CreateOnHealthy_NoHealthcheck(t *testing.T) {
 	startRequiredContainers(t, ctx, dockerCli, testContainers)
 
 	t.Cleanup(func() {
-		dockerCli.ContainerRemove(context.Background(), testContainers[0].id, containerApi.RemoveOptions{Force: true})
+		_ = dockerCli.ContainerRemove(context.Background(), testContainers[0].id, containerApi.RemoveOptions{Force: true})
 	})
 
 	// Assert entry NEVER exists
