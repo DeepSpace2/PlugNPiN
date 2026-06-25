@@ -46,6 +46,7 @@ func main() {
 	}
 
 	proc := processor.New(dockerClients, adguardHomeClient, piholeClient, npmClient, cliFlags.DryRun)
+	defer proc.Shutdown()
 
 	if config.RunInterval == 0 {
 		log.Info("RUN_INTERVAL is 0, will run once")
@@ -78,7 +79,6 @@ func main() {
 
 	<-ctx.Done()
 	log.Info("Shutdown signal received, exiting gracefully.")
-	proc.Shutdown()
 	wg.Wait()
 	log.Info("Shutdown complete.")
 }
