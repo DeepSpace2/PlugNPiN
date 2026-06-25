@@ -1,11 +1,13 @@
 package pihole
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/deepspace2/plugnpin/pkg/clients/common"
 	"github.com/deepspace2/plugnpin/pkg/logging"
@@ -58,8 +60,11 @@ func (p *Client) Logout() error {
 	if p.sid == "" {
 		return nil
 	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	headers["X-FTL-SID"] = p.sid
-	_, statusCode, err := common.Delete(&p.Client, p.baseURL+"/auth", headers)
+	_, statusCode, err := common.DeleteWithContext(ctx, &p.Client, p.baseURL+"/auth", headers)
 	if err != nil {
 		return err
 	}

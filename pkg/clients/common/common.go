@@ -1,6 +1,7 @@
 package common
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -126,16 +127,7 @@ func Patch(client *http.Client, path string, headers map[string]string, data str
 	return string(body), resp.StatusCode, nil
 }
 
-func Delete(client *http.Client, path string, headers map[string]string) (string, int, error) {
-	req, err := http.NewRequest(
-		http.MethodDelete,
-		path,
-		nil,
-	)
-	if err != nil {
-		return "", 0, err
-	}
-
+func doDeleteRequest(req *http.Request, client *http.Client, headers map[string]string) (string, int, error) {
 	setHeaders(req, headers)
 
 	resp, err := client.Do(req)
@@ -148,5 +140,33 @@ func Delete(client *http.Client, path string, headers map[string]string) (string
 	if err != nil {
 		return "", 0, err
 	}
+
 	return string(body), resp.StatusCode, nil
+}
+
+func Delete(client *http.Client, path string, headers map[string]string) (string, int, error) {
+	req, err := http.NewRequest(
+		http.MethodDelete,
+		path,
+		nil,
+	)
+	if err != nil {
+		return "", 0, err
+	}
+
+	return doDeleteRequest(req, client, headers)
+}
+
+func DeleteWithContext(ctx context.Context, client *http.Client, path string, headers map[string]string) (string, int, error) {
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodDelete,
+		path,
+		nil,
+	)
+	if err != nil {
+		return "", 0, err
+	}
+
+	return doDeleteRequest(req, client, headers)
 }
