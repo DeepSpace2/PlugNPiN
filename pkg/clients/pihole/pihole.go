@@ -26,18 +26,19 @@ var headers map[string]string = map[string]string{
 	"content-type": "application/json",
 }
 
-func NewClient(baseURL string) *Client {
+func NewClient(baseURL, password string) *Client {
 	return &Client{
 		Client: http.Client{
 			Transport: common.NewInstrumentedRoundTripper(metrics.PI_HOLE, metrics.ObserveApiRequestDuration),
 		},
-		baseURL: fmt.Sprintf("%v/api", baseURL),
-		sid:     "",
+		baseURL:  fmt.Sprintf("%v/api", baseURL),
+		password: password,
+		sid:      "",
 	}
 }
 
-func (p *Client) Login(password string) error {
-	loginPayload := fmt.Sprintf(`{"password": "%v"}`, password)
+func (p *Client) Login() error {
+	loginPayload := fmt.Sprintf(`{"password": "%v"}`, p.password)
 	loginResponseString, statusCode, err := common.Post(&p.Client, p.baseURL+"/auth", headers, &loginPayload)
 	if err != nil {
 		return err
@@ -49,7 +50,6 @@ func (p *Client) Login(password string) error {
 		return errors.New(resp.Session.Message)
 	}
 
-	p.password = password
 	p.sid = resp.Session.Sid
 	return nil
 }
@@ -64,7 +64,6 @@ func (p *Client) Logout() error {
 		return err
 	}
 	p.sid = ""
-	p.password = ""
 	if statusCode >= 400 {
 		log.Warn("Pi-Hole logout returned non-success status", "status", statusCode)
 	}
@@ -380,5 +379,5 @@ func (p *Client) refreshAuth() error {
 	if err := p.Logout(); err != nil {
 		log.Warn("Failed to logout old Pi-Hole session", "error", err)
 	}
-	return p.Login(p.password)
+	return p.Login()
 }

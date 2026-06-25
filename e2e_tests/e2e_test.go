@@ -232,7 +232,7 @@ func setClients(t *testing.T, containers []Container) (*docker.Client, *pihole.C
 		}
 	}
 
-	piholeClient := pihole.NewClient(piholeURL)
+	piholeClient := pihole.NewClient(piholeURL, "password")
 	logger.Info("Waiting for Pi-hole to be ready...")
 	piholeLoginTimeout := time.After(60 * time.Second)
 	piholeLoginTicker := time.NewTicker(3 * time.Second)
@@ -243,7 +243,7 @@ PiholeLoginLoop:
 		case <-piholeLoginTimeout:
 			t.Fatalf("Timed out waiting for Pi-hole to be ready at %s", piholeURL)
 		case <-piholeLoginTicker.C:
-			err = piholeClient.Login("password")
+			err = piholeClient.Login()
 			if err == nil {
 				logger.Info("Successfully logged into Pi-hole")
 				break PiholeLoginLoop
