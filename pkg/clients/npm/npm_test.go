@@ -33,7 +33,7 @@ func TestLogin(t *testing.T) {
 			assert.Equal(t, "test-password", req.Secret)
 
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(LoginResponse{Token: "test-jwt-token", Expires: time.Now().Add(24 * time.Hour).Format(time.RFC3339Nano)})
+			_ = json.NewEncoder(w).Encode(LoginResponse{Token: "test-jwt-token", Expires: time.Now().Add(24 * time.Hour).Format(time.RFC3339Nano)})
 		})
 
 		client, server := setupTestServer(handler)
@@ -58,7 +58,7 @@ func TestAddProxyHost(t *testing.T) {
 			if r.Method == http.MethodGet {
 				// 1. The function first gets existing hosts. We return an empty list.
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte(`[]`))
+				_, _ = w.Write([]byte(`[]`))
 				return
 			}
 
@@ -97,7 +97,7 @@ func TestAddProxyHost(t *testing.T) {
 				{ID: 123, DomainNames: []string{"existing-host.com"}},
 			}
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(existingHosts)
+			_ = json.NewEncoder(w).Encode(existingHosts)
 		})
 
 		client, server := setupTestServer(handler)
@@ -131,7 +131,7 @@ func TestDeleteProxyHosts(t *testing.T) {
 					{ID: 123, DomainNames: []string{"host1.com", "host2.com"}},
 				}
 				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(existingHosts)
+				_ = json.NewEncoder(w).Encode(existingHosts)
 				return
 			}
 
@@ -161,7 +161,7 @@ func TestDeleteProxyHosts(t *testing.T) {
 			assert.Equal(t, http.MethodGet, r.Method)
 
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`[]`))
+			_, _ = w.Write([]byte(`[]`))
 
 			if r.Method == http.MethodDelete {
 				deleteCalled = true
@@ -186,7 +186,7 @@ func TestGetCertificateIDByName(t *testing.T) {
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "/api/nginx/certificates", r.URL.Path)
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`[{"id": 1, "nice_name": "test-cert"}]`))
+			_, _ = w.Write([]byte(`[{"id": 1, "nice_name": "test-cert"}]`))
 		})
 
 		client, server := setupTestServer(handler)
@@ -202,7 +202,7 @@ func TestGetCertificateIDByName(t *testing.T) {
 	t.Run("not found", func(t *testing.T) {
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`[]`))
+			_, _ = w.Write([]byte(`[]`))
 		})
 
 		client, server := setupTestServer(handler)
@@ -223,7 +223,7 @@ func TestGetAccessListIDByName(t *testing.T) {
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "/api/nginx/access-lists", r.URL.Path)
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`[{"id": 2, "name": "test-access-list"}]`))
+			_, _ = w.Write([]byte(`[{"id": 2, "name": "test-access-list"}]`))
 		})
 
 		client, server := setupTestServer(handler)
@@ -239,7 +239,7 @@ func TestGetAccessListIDByName(t *testing.T) {
 	t.Run("not found", func(t *testing.T) {
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`[]`))
+			_, _ = w.Write([]byte(`[]`))
 		})
 
 		client, server := setupTestServer(handler)

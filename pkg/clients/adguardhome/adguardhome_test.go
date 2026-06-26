@@ -32,7 +32,7 @@ func TestAddDnsRewrite(t *testing.T) {
 
 			if r.URL.Path == "/control/rewrite/list" && r.Method == http.MethodGet {
 				w.WriteHeader(http.StatusOK)
-				fmt.Fprint(w, `[{"domain": "one.com", "answer": "1.1.1.1"}]`)
+				_, _ = fmt.Fprint(w, `[{"domain": "one.com", "answer": "1.1.1.1"}]`)
 				return
 			}
 
@@ -46,7 +46,7 @@ func TestAddDnsRewrite(t *testing.T) {
 				assert.True(t, payload.Enabled)
 
 				w.WriteHeader(http.StatusOK)
-				fmt.Fprint(w, `{}`)
+				_, _ = fmt.Fprint(w, `{}`)
 				return
 			}
 
@@ -81,13 +81,13 @@ func TestDeleteDnsRewrite(t *testing.T) {
 				assert.True(t, payload.Enabled)
 
 				w.WriteHeader(http.StatusOK)
-				fmt.Fprint(w, `{}`)
+				_, _ = fmt.Fprint(w, `{}`)
 				return
 			}
 
 			if r.URL.Path == "/control/rewrite/list" && r.Method == http.MethodGet {
 				w.WriteHeader(http.StatusOK)
-				fmt.Fprint(w, `[]`)
+				_, _ = fmt.Fprint(w, `[]`)
 				return
 			}
 
@@ -116,7 +116,7 @@ func TestWrongCredentials(t *testing.T) {
 				expectedAuth := "Basic " + base64.StdEncoding.EncodeToString([]byte("testuser:testpass"))
 				if auth != expectedAuth {
 					w.WriteHeader(http.StatusUnauthorized)
-					fmt.Fprint(w, `{}`)
+					_, _ = fmt.Fprint(w, `{}`)
 				}
 				return
 			}
@@ -126,7 +126,7 @@ func TestWrongCredentials(t *testing.T) {
 				expectedAuth := "Basic " + base64.StdEncoding.EncodeToString([]byte("testuser:testpass"))
 				if auth != expectedAuth {
 					w.WriteHeader(http.StatusUnauthorized)
-					fmt.Fprint(w, `{}`)
+					_, _ = fmt.Fprint(w, `{}`)
 				}
 				return
 			}

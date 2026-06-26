@@ -51,7 +51,7 @@ func setHeaders(req *http.Request, headers map[string]string) {
 	}
 }
 
-func Post(client *http.Client, path string, headers map[string]string, data *string) (string, int, error) {
+func Post(client *http.Client, path string, headers map[string]string, data *string) (bodyStr string, statusCode int, err error) {
 	req, err := http.NewRequest(
 		http.MethodPost,
 		path,
@@ -68,7 +68,11 @@ func Post(client *http.Client, path string, headers map[string]string, data *str
 		return "", 0, err
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", 0, err
@@ -77,7 +81,7 @@ func Post(client *http.Client, path string, headers map[string]string, data *str
 	return string(body), resp.StatusCode, nil
 }
 
-func Get(client *http.Client, path string, headers map[string]string) (string, int, error) {
+func Get(client *http.Client, path string, headers map[string]string) (bodyStr string, statusCode int, err error) {
 	req, err := http.NewRequest(
 		http.MethodGet,
 		path,
@@ -94,7 +98,11 @@ func Get(client *http.Client, path string, headers map[string]string) (string, i
 		return "", 0, err
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", 0, err
@@ -102,7 +110,7 @@ func Get(client *http.Client, path string, headers map[string]string) (string, i
 	return string(body), resp.StatusCode, nil
 }
 
-func Patch(client *http.Client, path string, headers map[string]string, data string) (string, int, error) {
+func Patch(client *http.Client, path string, headers map[string]string, data string) (bodyStr string, statusCode int, err error) {
 	req, err := http.NewRequest(
 		http.MethodPatch,
 		path,
@@ -119,7 +127,11 @@ func Patch(client *http.Client, path string, headers map[string]string, data str
 		return "", 0, err
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", 0, err
@@ -135,7 +147,11 @@ func doDeleteRequest(req *http.Request, client *http.Client, headers map[string]
 		return "", 0, err
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", 0, err

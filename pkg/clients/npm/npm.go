@@ -70,7 +70,10 @@ func (n *Client) Login() error {
 	err = json.Unmarshal([]byte(loginResponseString), &resp)
 	if statusCode >= 400 || err != nil || resp.Token == "" {
 		var loginError ErrorResponse
-		json.Unmarshal([]byte(loginResponseString), &loginError)
+		err = json.Unmarshal([]byte(loginResponseString), &loginError)
+		if err != nil {
+			return err
+		}
 		return errors.New(loginError.Error.Message)
 	}
 
@@ -98,7 +101,10 @@ func (n *Client) GetProxyHosts() (map[string]int, error) {
 
 	var proxyHosts []ProxyHostReply
 	existingProxyHostsMap := map[string]int{}
-	json.Unmarshal([]byte(proxyHostsString), &proxyHosts)
+	err = json.Unmarshal([]byte(proxyHostsString), &proxyHosts)
+	if err != nil {
+		return nil, err
+	}
 
 	for _, host := range proxyHosts {
 		for _, domainName := range host.DomainNames {
@@ -161,14 +167,16 @@ func (n *Client) getCertificates() (Certificates, error) {
 	}
 
 	var certificates Certificates
-	json.Unmarshal([]byte(resp), &certificates)
+	err = json.Unmarshal([]byte(resp), &certificates)
+	if err != nil {
+		return nil, err
+	}
 	return certificates, nil
 }
 
 func (n *Client) GetCertificateIDByName(name string) (int, error) {
 	certificates, err := n.getCertificates()
 	if err != nil {
-		log.Error("Failed to get certificates", "error", err)
 		return 0, err
 	}
 	for _, certificate := range certificates {
@@ -187,14 +195,16 @@ func (n *Client) getAccessLists() (AccessLists, error) {
 	}
 
 	var accessLists AccessLists
-	json.Unmarshal([]byte(resp), &accessLists)
+	err = json.Unmarshal([]byte(resp), &accessLists)
+	if err != nil {
+		return nil, err
+	}
 	return accessLists, nil
 }
 
 func (n *Client) GetAccessListIDByName(name string) (int, error) {
 	accessLists, err := n.getAccessLists()
 	if err != nil {
-		log.Error("Failed to get access lists", "error", err)
 		return 0, err
 	}
 	for _, accessList := range accessLists {
@@ -230,7 +240,10 @@ func (n *Client) AddProxyHost(host ProxyHost) (bool, error) {
 
 	if statusCode >= 400 {
 		var errorResponse ErrorResponse
-		json.Unmarshal([]byte(resp), &errorResponse)
+		err = json.Unmarshal([]byte(resp), &errorResponse)
+		if err != nil {
+			return false, err
+		}
 		return false, errors.New(errorResponse.Error.Message)
 	}
 	return true, nil
@@ -264,7 +277,10 @@ func (n *Client) DeleteProxyHosts(domains []string) (bool, error) {
 
 	if statusCode >= 400 {
 		var errorResponse ErrorResponse
-		json.Unmarshal([]byte(resp), &errorResponse)
+		err = json.Unmarshal([]byte(resp), &errorResponse)
+		if err != nil {
+			return false, err
+		}
 		return false, errors.New(errorResponse.Error.Message)
 	}
 	return true, nil
