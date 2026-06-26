@@ -233,7 +233,7 @@ func setClients(t *testing.T, containers []Container) (*docker.Client, *pihole.C
 	}
 
 	piholeClient := pihole.NewClient(piholeURL, "password")
-	logger.Info("Waiting for Pi-hole to be ready...")
+	logger.Info("Waiting for Pi-Hole to be ready...")
 	piholeLoginTimeout := time.After(60 * time.Second)
 	piholeLoginTicker := time.NewTicker(3 * time.Second)
 	defer piholeLoginTicker.Stop()
@@ -241,14 +241,14 @@ PiholeLoginLoop:
 	for {
 		select {
 		case <-piholeLoginTimeout:
-			t.Fatalf("Timed out waiting for Pi-hole to be ready at %s", piholeURL)
+			t.Fatalf("Timed out waiting for Pi-Hole to be ready at %s", piholeURL)
 		case <-piholeLoginTicker.C:
 			err = piholeClient.Login()
 			if err == nil {
-				logger.Info("Successfully logged into Pi-hole")
+				logger.Info("Successfully logged into Pi-Hole")
 				break PiholeLoginLoop
 			}
-			logger.Error("Pi-hole not ready, retrying...", "error", err)
+			logger.Error("Pi-Hole not ready, retrying...", "error", err)
 		}
 	}
 
@@ -408,9 +408,14 @@ func TestE2E(t *testing.T) {
 			}
 
 			// Deleting to assert delete functionality
-			_, _ = piholeClient.DeleteDnsRecords(urls)
-			_, _ = npmClient.DeleteProxyHosts(urls)
-			_, _ = adguardHomeClient.DeleteDnsRewrites(urls, npmClient.GetIP())
+			_, err = piholeClient.DeleteDnsRecords(urls)
+			require.NoError(t, err, "Failed to delete Pi-Hole DNS records")
+
+			_, err = npmClient.DeleteProxyHosts(urls)
+			require.NoError(t, err, "Failed to delete NPM proxy hosts")
+
+			_, err = adguardHomeClient.DeleteDnsRewrites(urls, npmClient.GetIP())
+			require.NoError(t, err, "Failed to delete AdGuard Home DNS rewrites")
 
 			piholeDnsRecords, err := piholeClient.GetDnsRecords()
 			if err != nil {

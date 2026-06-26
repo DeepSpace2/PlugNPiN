@@ -27,13 +27,13 @@ func TestLogin(t *testing.T) {
 			assert.Equal(t, "/api/auth", r.URL.Path)
 			assert.Equal(t, "POST", r.Method)
 			var payload map[string]string
-			json.NewDecoder(r.Body).Decode(&payload)
+			_ = json.NewDecoder(r.Body).Decode(&payload)
 			assert.Equal(t, "test-password", payload["password"])
 
 			// Send response
 			w.WriteHeader(http.StatusOK)
 			// The actual API response is more complex, so we mock the whole thing
-			fmt.Fprint(w, `{"session": {"sid": "test-sid", "message": "Login successful"}}`)
+			_, _ = fmt.Fprint(w, `{"session": {"sid": "test-sid", "message": "Login successful"}}`)
 		})
 		client, server := setupTestServer(handler, "test-password")
 		defer server.Close()
@@ -47,7 +47,7 @@ func TestLogin(t *testing.T) {
 	t.Run("api error on login", func(t *testing.T) {
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusUnauthorized)
-			fmt.Fprint(w, `{"session": {"sid": "", "message": "Invalid password"}}`)
+			_, _ = fmt.Fprint(w, `{"session": {"sid": "", "message": "Invalid password"}}`)
 		})
 		client, server := setupTestServer(handler, "wrong-password")
 		defer server.Close()
@@ -69,7 +69,7 @@ func TestLogout(t *testing.T) {
 			assert.Equal(t, "test-sid", r.Header.Get("X-FTL-SID"))
 			deleteCalled = true
 			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, `{"session": {"sid": "", "message": "Session deleted"}}`)
+			_, _ = fmt.Fprint(w, `{"session": {"sid": "", "message": "Session deleted"}}`)
 		})
 		client, server := setupTestServer(handler, "test-password")
 		defer server.Close()
@@ -99,7 +99,7 @@ func TestLogout(t *testing.T) {
 			assert.Equal(t, "/api/auth", r.URL.Path)
 			assert.Equal(t, "DELETE", r.Method)
 			w.WriteHeader(http.StatusNotFound)
-			fmt.Fprint(w, `{}`)
+			_, _ = fmt.Fprint(w, `{}`)
 		})
 		client, server := setupTestServer(handler, "test-password")
 		defer server.Close()
@@ -123,7 +123,7 @@ func TestAddDnsRecords(t *testing.T) {
 				// 1. First, the function gets the existing records.
 				w.WriteHeader(http.StatusOK)
 				// Respond with one existing record.
-				fmt.Fprint(w, `{"config": {"dns": {"hosts": ["1.1.1.1 one.com"]}}}`)
+				_, _ = fmt.Fprint(w, `{"config": {"dns": {"hosts": ["1.1.1.1 one.com"]}}}`)
 				return
 			}
 
@@ -138,7 +138,7 @@ func TestAddDnsRecords(t *testing.T) {
 				assert.ElementsMatch(t, expectedRecords, payload.Config.DNS.Hosts)
 
 				w.WriteHeader(http.StatusOK)
-				fmt.Fprint(w, `{"success": true}`)
+				_, _ = fmt.Fprint(w, `{"success": true}`)
 				return
 			}
 
@@ -168,7 +168,7 @@ func TestDeleteDnsRecords(t *testing.T) {
 			if r.Method == http.MethodGet {
 				w.WriteHeader(http.StatusOK)
 				// Respond with three existing records, two of which we will delete.
-				fmt.Fprint(w, `{"config": {"dns": {"hosts": ["1.1.1.1 one.com", "2.2.2.2 two.com", "3.3.3.3 three.com"]}}}`)
+				_, _ = fmt.Fprint(w, `{"config": {"dns": {"hosts": ["1.1.1.1 one.com", "2.2.2.2 two.com", "3.3.3.3 three.com"]}}}`)
 				return
 			}
 
@@ -183,7 +183,7 @@ func TestDeleteDnsRecords(t *testing.T) {
 				assert.ElementsMatch(t, expectedRecords, payload.Config.DNS.Hosts)
 
 				w.WriteHeader(http.StatusOK)
-				fmt.Fprint(w, `{"success": true}`)
+				_, _ = fmt.Fprint(w, `{"success": true}`)
 				return
 			}
 			t.Fatalf("Received unexpected request: %s %s", r.Method, r.URL.Path)
@@ -206,7 +206,7 @@ func TestDeleteDnsRecords(t *testing.T) {
 			assert.Equal(t, http.MethodGet, r.Method)
 
 			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, `{"config": {"dns": {"hosts": ["1.1.1.1 one.com"]}}}`)
+			_, _ = fmt.Fprint(w, `{"config": {"dns": {"hosts": ["1.1.1.1 one.com"]}}}`)
 
 			if r.Method == http.MethodPatch {
 				patchCalled = true
@@ -277,7 +277,7 @@ func TestAddCNameRecords(t *testing.T) {
 				// 1. First, the function gets the existing cname records.
 				w.WriteHeader(http.StatusOK)
 				// Respond with one existing cname record.
-				fmt.Fprint(w, `{"config": {"dns": {"cnameRecords": ["one.com,one.two.com"]}}}`)
+				_, _ = fmt.Fprint(w, `{"config": {"dns": {"cnameRecords": ["one.com,one.two.com"]}}}`)
 				return
 			}
 
@@ -292,7 +292,7 @@ func TestAddCNameRecords(t *testing.T) {
 				assert.ElementsMatch(t, expectedCNames, payload.Config.DNS.CnameRecords)
 
 				w.WriteHeader(http.StatusOK)
-				fmt.Fprint(w, `{"success": true}`)
+				_, _ = fmt.Fprint(w, `{"success": true}`)
 				return
 			}
 
@@ -322,7 +322,7 @@ func TestDeleteCNameRecords(t *testing.T) {
 			if r.Method == http.MethodGet {
 				w.WriteHeader(http.StatusOK)
 				// Respond with three existing cname records, two of which we will delete.
-				fmt.Fprint(w, `{"config": {"dns": {"cnameRecords": ["one.com,one.two.com", "two.com,two.two.com", "three.com,three.two.com"]}}}`)
+				_, _ = fmt.Fprint(w, `{"config": {"dns": {"cnameRecords": ["one.com,one.two.com", "two.com,two.two.com", "three.com,three.two.com"]}}}`)
 				return
 			}
 
@@ -337,7 +337,7 @@ func TestDeleteCNameRecords(t *testing.T) {
 				assert.ElementsMatch(t, expectedCNames, payload.Config.DNS.CnameRecords)
 
 				w.WriteHeader(http.StatusOK)
-				fmt.Fprint(w, `{"success": true}`)
+				_, _ = fmt.Fprint(w, `{"success": true}`)
 				return
 			}
 			t.Fatalf("Received unexpected request: %s %s", r.Method, r.URL.Path)
@@ -360,7 +360,7 @@ func TestDeleteCNameRecords(t *testing.T) {
 			assert.Equal(t, http.MethodGet, r.Method)
 
 			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, `{"config": {"dns": {"cname": ["one.com,one.two.com"]}}}`)
+			_, _ = fmt.Fprint(w, `{"config": {"dns": {"cnameRecords": ["one.com,one.two.com"]}}}`)
 
 			if r.Method == http.MethodPatch {
 				patchCalled = true

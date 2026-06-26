@@ -28,17 +28,20 @@ type configResponse struct {
 			Hosts               []string `json:"hosts"`
 			DomainNeeded        bool     `json:"domainNeeded"`
 			ExpandHosts         bool     `json:"expandHosts"`
-			Domain              string   `json:"domain"`
-			BogusPriv           bool     `json:"bogusPriv"`
-			Dnssec              bool     `json:"dnssec"`
-			Interface           string   `json:"interface"`
-			HostRecord          string   `json:"hostRecord"`
-			ListeningMode       string   `json:"listeningMode"`
-			QueryLogging        bool     `json:"queryLogging"`
-			CnameRecords        []any    `json:"cnameRecords"`
-			Port                int      `json:"port"`
-			RevServers          []any    `json:"revServers"`
-			Cache               struct {
+			Domain              struct {
+				Name  string `json:"name"`
+				Local bool   `json:"local"`
+			} `json:"domain"`
+			BogusPriv     bool   `json:"bogusPriv"`
+			Dnssec        bool   `json:"dnssec"`
+			Interface     string `json:"interface"`
+			HostRecord    string `json:"hostRecord"`
+			ListeningMode string `json:"listeningMode"`
+			QueryLogging  bool   `json:"queryLogging"`
+			CnameRecords  []any  `json:"cnameRecords"`
+			Port          int    `json:"port"`
+			RevServers    []any  `json:"revServers"`
+			Cache         struct {
 				Size               int `json:"size"`
 				Optimizer          int `json:"optimizer"`
 				UpstreamBlockedTTL int `json:"upstreamBlockedTTL"`

@@ -39,7 +39,10 @@ func (ad *Client) GetDnsRewrites() (DnsRewrites, error) {
 		return nil, err
 	}
 	var resp []DnsRewrite
-	json.Unmarshal([]byte(dnsRewritesResponseString), &resp)
+	err = json.Unmarshal([]byte(dnsRewritesResponseString), &resp)
+	if err != nil {
+		return nil, err
+	}
 
 	dnsRewrites := DnsRewrites{}
 	for _, rawDnsRewrite := range resp {

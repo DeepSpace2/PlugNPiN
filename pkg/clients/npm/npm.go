@@ -68,7 +68,11 @@ func (n *Client) Login() error {
 
 	var resp LoginResponse
 	err = json.Unmarshal([]byte(loginResponseString), &resp)
-	if statusCode >= 400 || err != nil || resp.Token == "" {
+	if err != nil {
+		return err
+	}
+
+	if statusCode >= 400 || resp.Token == "" {
 		var loginError ErrorResponse
 		err = json.Unmarshal([]byte(loginResponseString), &loginError)
 		if err != nil {
