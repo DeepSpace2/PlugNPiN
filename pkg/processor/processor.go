@@ -290,6 +290,14 @@ func (p *Processor) handleNpm(ctx context.Context, containerEvent events.Action,
 	}
 }
 
+func (p *Processor) Shutdown() {
+	if p.piholeClient != nil {
+		if err := p.piholeClient.Logout(); err != nil {
+			log.Warn("Failed to logout from Pi-Hole", "error", err)
+		}
+	}
+}
+
 func (p *Processor) processContainer(ctx context.Context, containerEvent events.Action, containerId string, dockerClient *docker.Client, containerName, ip string, urls []string, port int, opts *docker.ClientOptions) {
 	log := log.With(
 		"container", containerName,

@@ -19,8 +19,8 @@ func GetClients(cliFlags cli.Flags, config *config.Config) (map[string]*docker.C
 
 	if !cliFlags.DryRun {
 		if !config.PiholeDisabled {
-			piholeClient = pihole.NewClient(config.PiholeHost)
-			err := piholeClient.Login(config.PiholePassword)
+			piholeClient = pihole.NewClient(config.PiholeHost, config.PiholePassword)
+			err := piholeClient.Login()
 			if err != nil {
 				log.Error("Failed to login to Pi-Hole", "error", err)
 				return nil, nil, nil, nil, err

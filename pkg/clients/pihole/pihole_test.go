@@ -13,9 +13,9 @@ import (
 )
 
 // setupTestServer creates a new test server and a client pointing to it.
-func setupTestServer(handler http.Handler) (*Client, *httptest.Server) {
+func setupTestServer(handler http.Handler, password string) (*Client, *httptest.Server) {
 	server := httptest.NewServer(handler)
-	client := NewClient(server.URL)
+	client := NewClient(server.URL, password)
 	client.Client = *server.Client() // Replace the default client with the test server's client
 	return client, server
 }
@@ -35,10 +35,10 @@ func TestLogin(t *testing.T) {
 			// The actual API response is more complex, so we mock the whole thing
 			fmt.Fprint(w, `{"session": {"sid": "test-sid", "message": "Login successful"}}`)
 		})
-		client, server := setupTestServer(handler)
+		client, server := setupTestServer(handler, "test-password")
 		defer server.Close()
 
-		err := client.Login("test-password")
+		err := client.Login()
 
 		assert.NoError(t, err)
 		assert.Equal(t, "test-sid", client.sid)
@@ -49,13 +49,65 @@ func TestLogin(t *testing.T) {
 			w.WriteHeader(http.StatusUnauthorized)
 			fmt.Fprint(w, `{"session": {"sid": "", "message": "Invalid password"}}`)
 		})
-		client, server := setupTestServer(handler)
+		client, server := setupTestServer(handler, "wrong-password")
 		defer server.Close()
 
-		err := client.Login("wrong-password")
+		err := client.Login()
 
 		assert.Error(t, err)
 		assert.Equal(t, "Invalid password", err.Error())
+		assert.Empty(t, client.sid)
+	})
+}
+
+func TestLogout(t *testing.T) {
+	t.Run("successful logout", func(t *testing.T) {
+		deleteCalled := false
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "/api/auth", r.URL.Path)
+			assert.Equal(t, "DELETE", r.Method)
+			assert.Equal(t, "test-sid", r.Header.Get("X-FTL-SID"))
+			deleteCalled = true
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprint(w, `{"session": {"sid": "", "message": "Session deleted"}}`)
+		})
+		client, server := setupTestServer(handler, "test-password")
+		defer server.Close()
+		client.sid = "test-sid"
+
+		err := client.Logout()
+
+		assert.NoError(t, err)
+		assert.True(t, deleteCalled, "DELETE /api/auth was not called")
+		assert.Empty(t, client.sid)
+	})
+
+	t.Run("no-op when already logged out", func(t *testing.T) {
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			t.Fatal("Unexpected request when sid is empty")
+		})
+		client, server := setupTestServer(handler, "test-password")
+		defer server.Close()
+
+		err := client.Logout()
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("non-success status is non-fatal", func(t *testing.T) {
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "/api/auth", r.URL.Path)
+			assert.Equal(t, "DELETE", r.Method)
+			w.WriteHeader(http.StatusNotFound)
+			fmt.Fprint(w, `{}`)
+		})
+		client, server := setupTestServer(handler, "test-password")
+		defer server.Close()
+		client.sid = "test-sid"
+
+		err := client.Logout()
+
+		assert.NoError(t, err)
 		assert.Empty(t, client.sid)
 	})
 }
@@ -94,7 +146,7 @@ func TestAddDnsRecords(t *testing.T) {
 			t.Fatalf("Received unexpected request: %s %s", r.Method, r.URL.Path)
 		})
 
-		client, server := setupTestServer(handler)
+		client, server := setupTestServer(handler, "test-password")
 		defer server.Close()
 
 		// Manually set the session ID that the login step would have provided
@@ -137,7 +189,7 @@ func TestDeleteDnsRecords(t *testing.T) {
 			t.Fatalf("Received unexpected request: %s %s", r.Method, r.URL.Path)
 		})
 
-		client, server := setupTestServer(handler)
+		client, server := setupTestServer(handler, "test-password")
 		defer server.Close()
 		client.sid = "test-sid"
 
@@ -161,7 +213,7 @@ func TestDeleteDnsRecords(t *testing.T) {
 			}
 		})
 
-		client, server := setupTestServer(handler)
+		client, server := setupTestServer(handler, "test-password")
 		defer server.Close()
 		client.sid = "test-sid"
 
@@ -248,7 +300,7 @@ func TestAddCNameRecords(t *testing.T) {
 			t.Fatalf("Received unexpected request: %s %s", r.Method, r.URL.Path)
 		})
 
-		client, server := setupTestServer(handler)
+		client, server := setupTestServer(handler, "test-password")
 		defer server.Close()
 
 		// Manually set the session ID that the login step would have provided
@@ -291,7 +343,7 @@ func TestDeleteCNameRecords(t *testing.T) {
 			t.Fatalf("Received unexpected request: %s %s", r.Method, r.URL.Path)
 		})
 
-		client, server := setupTestServer(handler)
+		client, server := setupTestServer(handler, "test-password")
 		defer server.Close()
 		client.sid = "test-sid"
 
@@ -315,7 +367,7 @@ func TestDeleteCNameRecords(t *testing.T) {
 			}
 		})
 
-		client, server := setupTestServer(handler)
+		client, server := setupTestServer(handler, "test-password")
 		defer server.Close()
 		client.sid = "test-sid"
 

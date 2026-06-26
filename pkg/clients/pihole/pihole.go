@@ -1,12 +1,13 @@
 package pihole
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
+	"time"
 
 	"github.com/deepspace2/plugnpin/pkg/clients/common"
 	"github.com/deepspace2/plugnpin/pkg/logging"
@@ -27,18 +28,19 @@ var headers map[string]string = map[string]string{
 	"content-type": "application/json",
 }
 
-func NewClient(baseURL string) *Client {
+func NewClient(baseURL, password string) *Client {
 	return &Client{
 		Client: http.Client{
 			Transport: common.NewInstrumentedRoundTripper(metrics.PI_HOLE, metrics.ObserveApiRequestDuration),
 		},
-		baseURL: fmt.Sprintf("%v/api", baseURL),
-		sid:     "",
+		baseURL:  fmt.Sprintf("%v/api", baseURL),
+		password: password,
+		sid:      "",
 	}
 }
 
-func (p *Client) Login(password string) error {
-	loginPayload := fmt.Sprintf(`{"password": "%v"}`, password)
+func (p *Client) Login() error {
+	loginPayload := fmt.Sprintf(`{"password": "%v"}`, p.password)
 	loginResponseString, statusCode, err := common.Post(&p.Client, p.baseURL+"/auth", headers, &loginPayload)
 	if err != nil {
 		return err
@@ -50,8 +52,26 @@ func (p *Client) Login(password string) error {
 		return errors.New(resp.Session.Message)
 	}
 
-	p.password = password
 	p.sid = resp.Session.Sid
+	return nil
+}
+
+func (p *Client) Logout() error {
+	if p.sid == "" {
+		return nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	headers["X-FTL-SID"] = p.sid
+	_, statusCode, err := common.DeleteWithContext(ctx, &p.Client, p.baseURL+"/auth", headers)
+	if err != nil {
+		return err
+	}
+	p.sid = ""
+	if statusCode >= 400 {
+		log.Warn("Pi-Hole logout returned non-success status", "status", statusCode)
+	}
 	return nil
 }
 
@@ -72,8 +92,7 @@ func dnsRecordToRaw(domain DomainName, ip IP) string {
 
 func (p *Client) GetDnsRecords() (DnsRecords, error) {
 	if p.sid == "" {
-		log.Error("Missing Pi-Hole session ID")
-		os.Exit(1)
+		return nil, errMissingSessionId
 	}
 	headers["X-FTL-SID"] = p.sid
 	configResponseString, _, err := common.Get(&p.Client, p.baseURL+"/config", headers)
@@ -127,8 +146,7 @@ func (p *Client) AddDnsRecords(domains []string, ip string) (numOfAddedDnsRecord
 	}
 
 	if p.sid == "" {
-		log.Error("Missing Pi-Hole session ID")
-		os.Exit(1)
+		return 0, errMissingSessionId
 	}
 	headers["X-FTL-SID"] = p.sid
 	resp, statusCode, err := common.Patch(&p.Client, p.baseURL+"/config", headers, string(payloadString))
@@ -137,7 +155,9 @@ func (p *Client) AddDnsRecords(domains []string, ip string) (numOfAddedDnsRecord
 	}
 
 	if statusCode == 401 {
-		p.refreshAuth()
+		if err := p.refreshAuth(); err != nil {
+			return 0, errors.Join(errAuthRefreshFailed, err)
+		}
 		return p.AddDnsRecords(domains, ip)
 	}
 
@@ -183,8 +203,7 @@ func (p *Client) DeleteDnsRecords(domains []string) (numOfDeletedDnsRecords int,
 	}
 
 	if p.sid == "" {
-		log.Error("Missing Pi-Hole session ID")
-		os.Exit(1)
+		return 0, errMissingSessionId
 	}
 	headers["X-FTL-SID"] = p.sid
 	resp, statusCode, err := common.Patch(&p.Client, p.baseURL+"/config", headers, string(payloadString))
@@ -193,7 +212,9 @@ func (p *Client) DeleteDnsRecords(domains []string) (numOfDeletedDnsRecords int,
 	}
 
 	if statusCode == 401 {
-		p.refreshAuth()
+		if err := p.refreshAuth(); err != nil {
+			return 0, errors.Join(errAuthRefreshFailed, err)
+		}
 		return p.DeleteDnsRecords(domains)
 	}
 
@@ -223,8 +244,7 @@ func cNameRecordToRaw(domain DomainName, target Target) string {
 
 func (p *Client) getCNameRecords() (CNameRecords, error) {
 	if p.sid == "" {
-		log.Error("Missing Pi-Hole session ID")
-		os.Exit(1)
+		return nil, errMissingSessionId
 	}
 	headers["X-FTL-SID"] = p.sid
 	configResponseString, _, err := common.Get(&p.Client, p.baseURL+"/config", headers)
@@ -278,8 +298,7 @@ func (p *Client) AddCNameRecords(domains []string, target string) (numOfAddedCNa
 	}
 
 	if p.sid == "" {
-		log.Error("Missing Pi-Hole session ID")
-		os.Exit(1)
+		return numOfAddedCNameRecords, errMissingSessionId
 	}
 	headers["X-FTL-SID"] = p.sid
 	resp, statusCode, err := common.Patch(&p.Client, p.baseURL+"/config", headers, string(payloadString))
@@ -288,7 +307,9 @@ func (p *Client) AddCNameRecords(domains []string, target string) (numOfAddedCNa
 	}
 
 	if statusCode == 401 {
-		p.refreshAuth()
+		if err := p.refreshAuth(); err != nil {
+			return numOfAddedCNameRecords, errors.Join(errAuthRefreshFailed, err)
+		}
 		return p.AddCNameRecords(domains, target)
 	}
 
@@ -334,8 +355,7 @@ func (p *Client) DeleteCNameRecords(domains []string) (numOfDeletedCNameRecords 
 	}
 
 	if p.sid == "" {
-		log.Error("Missing Pi-Hole session ID")
-		os.Exit(1)
+		return numOfDeletedCNameRecords, errMissingSessionId
 	}
 	headers["X-FTL-SID"] = p.sid
 	resp, statusCode, err := common.Patch(&p.Client, p.baseURL+"/config", headers, string(payloadString))
@@ -344,7 +364,9 @@ func (p *Client) DeleteCNameRecords(domains []string) (numOfDeletedCNameRecords 
 	}
 
 	if statusCode == 401 {
-		p.refreshAuth()
+		if err := p.refreshAuth(); err != nil {
+			return numOfDeletedCNameRecords, errors.Join(errAuthRefreshFailed, err)
+		}
 		return p.DeleteCNameRecords(domains)
 	}
 
@@ -357,7 +379,10 @@ func (p *Client) DeleteCNameRecords(domains []string) (numOfDeletedCNameRecords 
 	return len(deletedDomains), nil
 }
 
-func (p *Client) refreshAuth() {
+func (p *Client) refreshAuth() error {
 	log.Info("Refreshing Pi-Hole authentication")
-	p.Login(p.password)
+	if err := p.Logout(); err != nil {
+		log.Warn("Failed to logout old Pi-Hole session", "error", err)
+	}
+	return p.Login()
 }
