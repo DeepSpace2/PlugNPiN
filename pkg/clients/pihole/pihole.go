@@ -46,7 +46,10 @@ func (p *Client) Login() error {
 		return err
 	}
 	var resp loginResponse
-	json.Unmarshal([]byte(loginResponseString), &resp)
+	err = json.Unmarshal([]byte(loginResponseString), &resp)
+	if err != nil {
+		return err
+	}
 
 	if statusCode >= 400 || resp.Session.Sid == "" {
 		return errors.New(resp.Session.Message)
@@ -94,13 +97,18 @@ func (p *Client) GetDnsRecords() (DnsRecords, error) {
 	if p.sid == "" {
 		return nil, errMissingSessionId
 	}
+
 	headers["X-FTL-SID"] = p.sid
 	configResponseString, _, err := common.Get(&p.Client, p.baseURL+"/config", headers)
 	if err != nil {
 		return nil, err
 	}
+
 	var resp configResponse
-	json.Unmarshal([]byte(configResponseString), &resp)
+	err = json.Unmarshal([]byte(configResponseString), &resp)
+	if err != nil {
+		return nil, err
+	}
 
 	dnsRecords := DnsRecords{}
 	for _, rawDnsRecords := range resp.Config.DNS.Hosts {
@@ -155,7 +163,7 @@ func (p *Client) AddDnsRecords(domains []string, ip string) (numOfAddedDnsRecord
 	}
 
 	if statusCode == 401 {
-		if err := p.refreshAuth(); err != nil {
+		if err = p.refreshAuth(); err != nil {
 			return 0, errors.Join(errAuthRefreshFailed, err)
 		}
 		return p.AddDnsRecords(domains, ip)
@@ -163,7 +171,11 @@ func (p *Client) AddDnsRecords(domains []string, ip string) (numOfAddedDnsRecord
 
 	if statusCode >= 400 {
 		var errorResponse ErrorResponse
-		json.Unmarshal([]byte(resp), &errorResponse)
+		err = json.Unmarshal([]byte(resp), &errorResponse)
+		if err != nil {
+			return 0, err
+		}
+
 		return 0, fmt.Errorf("%v. %v", errorResponse.Error.Message, errorResponse.Error.Hint)
 	}
 
@@ -212,7 +224,7 @@ func (p *Client) DeleteDnsRecords(domains []string) (numOfDeletedDnsRecords int,
 	}
 
 	if statusCode == 401 {
-		if err := p.refreshAuth(); err != nil {
+		if err = p.refreshAuth(); err != nil {
 			return 0, errors.Join(errAuthRefreshFailed, err)
 		}
 		return p.DeleteDnsRecords(domains)
@@ -220,8 +232,11 @@ func (p *Client) DeleteDnsRecords(domains []string) (numOfDeletedDnsRecords int,
 
 	if statusCode >= 400 {
 		var errorResponse ErrorResponse
-		json.Unmarshal([]byte(resp), &errorResponse)
-		return numOfDeletedDnsRecords, fmt.Errorf("%v. %v", errorResponse.Error.Message, errorResponse.Error.Hint)
+		err = json.Unmarshal([]byte(resp), &errorResponse)
+		if err != nil {
+			return 0, err
+		}
+		return 0, fmt.Errorf("%v. %v", errorResponse.Error.Message, errorResponse.Error.Hint)
 	}
 
 	return len(deletedDomains), nil
@@ -246,13 +261,18 @@ func (p *Client) getCNameRecords() (CNameRecords, error) {
 	if p.sid == "" {
 		return nil, errMissingSessionId
 	}
+
 	headers["X-FTL-SID"] = p.sid
 	configResponseString, _, err := common.Get(&p.Client, p.baseURL+"/config", headers)
 	if err != nil {
 		return nil, err
 	}
+
 	var resp configResponse
-	json.Unmarshal([]byte(configResponseString), &resp)
+	err = json.Unmarshal([]byte(configResponseString), &resp)
+	if err != nil {
+		return nil, err
+	}
 
 	cNameRecords := CNameRecords{}
 	for _, rawCNameRecord := range resp.Config.DNS.CnameRecords {
@@ -262,6 +282,7 @@ func (p *Client) getCNameRecords() (CNameRecords, error) {
 		}
 		cNameRecords[domain] = target
 	}
+
 	return cNameRecords, nil
 }
 
@@ -294,29 +315,34 @@ func (p *Client) AddCNameRecords(domains []string, target string) (numOfAddedCNa
 
 	payloadString, err := json.Marshal(payload)
 	if err != nil {
-		return numOfAddedCNameRecords, err
+		return 0, err
 	}
 
 	if p.sid == "" {
-		return numOfAddedCNameRecords, errMissingSessionId
+		return 0, errMissingSessionId
 	}
+
 	headers["X-FTL-SID"] = p.sid
 	resp, statusCode, err := common.Patch(&p.Client, p.baseURL+"/config", headers, string(payloadString))
 	if err != nil {
-		return numOfAddedCNameRecords, err
+		return 0, err
 	}
 
 	if statusCode == 401 {
-		if err := p.refreshAuth(); err != nil {
-			return numOfAddedCNameRecords, errors.Join(errAuthRefreshFailed, err)
+		if err = p.refreshAuth(); err != nil {
+			return 0, errors.Join(errAuthRefreshFailed, err)
 		}
 		return p.AddCNameRecords(domains, target)
 	}
 
 	if statusCode >= 400 {
 		var errorResponse ErrorResponse
-		json.Unmarshal([]byte(resp), &errorResponse)
-		return numOfAddedCNameRecords, fmt.Errorf("%v. %v", errorResponse.Error.Message, errorResponse.Error.Hint)
+		err = json.Unmarshal([]byte(resp), &errorResponse)
+		if err != nil {
+			return 0, err
+		}
+
+		return 0, fmt.Errorf("%v. %v", errorResponse.Error.Message, errorResponse.Error.Hint)
 	}
 
 	return len(addedDomains), nil
@@ -325,7 +351,7 @@ func (p *Client) AddCNameRecords(domains []string, target string) (numOfAddedCNa
 func (p *Client) DeleteCNameRecords(domains []string) (numOfDeletedCNameRecords int, err error) {
 	existingRecords, err := p.getCNameRecords()
 	if err != nil {
-		return numOfDeletedCNameRecords, err
+		return 0, err
 	}
 
 	deletedDomains := []string{}
@@ -338,7 +364,7 @@ func (p *Client) DeleteCNameRecords(domains []string) (numOfDeletedCNameRecords 
 	}
 
 	if len(deletedDomains) == 0 {
-		return numOfDeletedCNameRecords, nil
+		return 0, nil
 	}
 
 	rawRecordsSlice := []string{}
@@ -351,29 +377,34 @@ func (p *Client) DeleteCNameRecords(domains []string) (numOfDeletedCNameRecords 
 
 	payloadString, err := json.Marshal(payload)
 	if err != nil {
-		return numOfDeletedCNameRecords, err
+		return 0, err
 	}
 
 	if p.sid == "" {
-		return numOfDeletedCNameRecords, errMissingSessionId
+		return 0, errMissingSessionId
 	}
+
 	headers["X-FTL-SID"] = p.sid
 	resp, statusCode, err := common.Patch(&p.Client, p.baseURL+"/config", headers, string(payloadString))
 	if err != nil {
-		return numOfDeletedCNameRecords, err
+		return 0, err
 	}
 
 	if statusCode == 401 {
-		if err := p.refreshAuth(); err != nil {
-			return numOfDeletedCNameRecords, errors.Join(errAuthRefreshFailed, err)
+		if err = p.refreshAuth(); err != nil {
+			return 0, errors.Join(errAuthRefreshFailed, err)
 		}
 		return p.DeleteCNameRecords(domains)
 	}
 
 	if statusCode >= 400 {
 		var errorResponse ErrorResponse
-		json.Unmarshal([]byte(resp), &errorResponse)
-		return numOfDeletedCNameRecords, fmt.Errorf("%v. %v", errorResponse.Error.Message, errorResponse.Error.Hint)
+		err = json.Unmarshal([]byte(resp), &errorResponse)
+		if err != nil {
+			return 0, err
+		}
+
+		return 0, fmt.Errorf("%v. %v", errorResponse.Error.Message, errorResponse.Error.Hint)
 	}
 
 	return len(deletedDomains), nil

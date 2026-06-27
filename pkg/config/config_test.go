@@ -103,7 +103,7 @@ func TestGetConfig_EnvVars(t *testing.T) {
 				"NGINX_PROXY_MANAGER_USERNAME": "user",
 				"PIHOLE_HOST":                  "pihole.example.com",
 				"PIHOLE_PASSWORD":              "pihole_pass",
-				"METRICS_SERVER_PORT":           "0",
+				"METRICS_SERVER_PORT":          "0",
 			},
 			expectedConfig: nil,
 			expectErr:      true,
@@ -405,7 +405,7 @@ func unsetAllConfigEnvVars() {
 		field := typ.Field(i)
 		envName := field.Tag.Get("env")
 		if envName != "" {
-			os.Unsetenv(envName)
+			_ = os.Unsetenv(envName)
 		}
 	}
 }

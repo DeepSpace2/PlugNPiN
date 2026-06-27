@@ -23,10 +23,9 @@ func pullImage(ctx context.Context, dockerCli *dockerCliClient.Client, img strin
 		return err
 	}
 
-	defer reader.Close()
+	defer reader.Close() //nolint:errcheck
 	termFd, isTerm := term.GetFdInfo(os.Stderr)
-	jsonmessage.DisplayJSONMessagesStream(reader, os.Stderr, termFd, isTerm, nil)
-	return nil
+	return jsonmessage.DisplayJSONMessagesStream(reader, os.Stderr, termFd, isTerm, nil)
 }
 
 func markContainerHealthy(ctx context.Context, dockerCli *dockerCliClient.Client, containerID string) error {
