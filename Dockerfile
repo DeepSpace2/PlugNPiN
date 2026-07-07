@@ -23,4 +23,3 @@ WORKDIR /app
 COPY --from=builder /app/plugnpin .
 
 CMD [ "./plugnpin" ]
-
