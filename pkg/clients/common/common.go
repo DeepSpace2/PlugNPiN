@@ -117,7 +117,7 @@ func Patch(client *http.Client, path string, headers map[string]string, data str
 		strings.NewReader(data),
 	)
 	if err != nil {
-		return "", 0, nil
+		return "", 0, err
 	}
 
 	setHeaders(req, headers)

@@ -12,19 +12,28 @@ import (
 
 var log = logging.GetLogger("clients")
 
-func GetClients(cliFlags cli.Flags, config *config.Config) (map[string]*docker.Client, *adguardhome.Client, *pihole.Client, *npm.Client, error) {
-	var adguardHomeClient *adguardhome.Client
-	var piholeClient *pihole.Client
-	var npmClient *npm.Client
-
+func GetClients(cliFlags cli.Flags, config *config.Config) (
+	dockerClients map[string]*docker.Client,
+	adguardHomeClient *adguardhome.Client,
+	piholeClient *pihole.Client,
+	npmClient *npm.Client,
+	err error,
+) {
 	if !cliFlags.DryRun {
 		if !config.PiholeDisabled {
 			piholeClient = pihole.NewClient(config.PiholeHost, config.PiholePassword)
-			err := piholeClient.Login()
-			if err != nil {
+			if err = piholeClient.Login(); err != nil {
 				log.Error("Failed to login to Pi-Hole", "error", err)
 				return nil, nil, nil, nil, err
 			}
+			piholeClient := piholeClient
+			defer func() {
+				if err != nil {
+					if piholeLogoutErr := piholeClient.Logout(); piholeLogoutErr != nil {
+						log.Warn("Failed to logout from Pi-Hole", "error", piholeLogoutErr)
+					}
+				}
+			}()
 		}
 
 		if !config.AdguardHomeDisabled {
@@ -32,14 +41,14 @@ func GetClients(cliFlags cli.Flags, config *config.Config) (map[string]*docker.C
 		}
 
 		npmClient = npm.NewClient(config.NpmHost, config.NpmUsername, config.NpmPassword)
-		err := npmClient.Login()
+		err = npmClient.Login()
 		if err != nil {
 			log.Error("Failed to login to Nginx Proxy Manager", "error", err)
 			return nil, nil, nil, nil, err
 		}
 	}
 
-	dockerClients := make(map[string]*docker.Client)
+	dockerClients = make(map[string]*docker.Client)
 	if len(config.DockerHosts) == 0 {
 		config.DockerHosts = append(config.DockerHosts, config.DockerHost)
 	}
