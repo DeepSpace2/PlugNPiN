@@ -21,8 +21,8 @@ See [Optional Environment Variables](./configuration.md#optional).
 PlugNPiN discovers services by scanning for Docker containers that have the following labels:
 
 - `plugNPiN.ip` - The IP address and port of the container (e.g., `192.168.1.100:8080`).
-- `plugNPiN.url` - The desired URL for the service (e.g., `my-service.local`).  
-  Multiple domains are supported (since version [:octicons-tag-24: 0.10.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v0.10.0){ .md-tag target="_blank" }) and should be comma-separated,  
+- `plugNPiN.url` - The desired URL for the service (e.g., `my-service.local`).
+  Multiple domains are supported (since version [:octicons-tag-24: 0.10.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v0.10.0){ .md-tag target="_blank" }) and should be comma-separated,
    for example `domain1.local,domain2.local`.
 
 The application operates in two complementary modes to keep your services synchronized:

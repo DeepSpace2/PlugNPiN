@@ -22,6 +22,8 @@ jobs:
               - '.github/workflows/pr-build.yml'
               - '.github/workflows/release.yml'
               - '.github/workflows/reusable-docker-build.yml'
+              - '.github/workflows/reusable-pre-commit.yml'
+              - '.pre-commit-config.yaml'
               - 'pkg/**'
               - 'main.go'
               - 'go.*'
@@ -53,3 +55,11 @@ jobs:
     needs: changes
     if: ${{ needs.changes.outputs.src == 'true' }}
     uses: ./.github/workflows/reusable-unittests.yml
+
+  pre-commit:
+    needs: changes
+    if: ${{ needs.changes.outputs.src == 'true' }}
+    uses: ./.github/workflows/reusable-pre-commit.yml
+    with:
+      base_sha: ${{ github.event.pull_request.base.sha }}
+      head_sha: ${{ github.event.pull_request.head.sha }}
