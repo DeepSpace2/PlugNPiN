@@ -95,7 +95,7 @@
             <div class="md-banner__inner md-grid md-typeset">
               
   You're not viewing the latest version.
-  <a href="../.."> 
+  <a href="../..">
     <strong>Click here to go to latest.</strong>
   </a>
 
@@ -521,9 +521,9 @@
 <h1 id="monitoring">Monitoring</h1>
 <h2 id="prometheus">Prometheus <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.372 0 12c0 6.627 5.373 12 12 12s12-5.373 12-12c0-6.628-5.373-12-12-12m0 22.46c-1.885 0-3.414-1.26-3.414-2.814h6.828c0 1.553-1.528 2.813-3.414 2.813zm5.64-3.745H6.36v-2.046h11.28zm-.04-3.098H6.391q-.056-.064-.111-.13c-1.155-1.401-1.427-2.133-1.69-2.879-.005-.025 1.4.287 2.395.511 0 0 .513.119 1.262.255-.72-.843-1.147-1.915-1.147-3.01 0-2.406 1.845-4.508 1.18-6.207.648.053 1.34 1.367 1.387 3.422.689-.951.977-2.69.977-3.755 0-1.103.727-2.385 1.454-2.429-.648 1.069.168 1.984.894 4.256.272.854.237 2.29.447 3.201.07-1.892.395-4.652 1.595-5.605-.529 1.2.079 2.702.494 3.424.671 1.164 1.078 2.047 1.078 3.716a4.64 4.64 0 0 1-1.11 2.996c.792-.149 1.34-.283 1.34-.283l2.573-.502s-.374 1.538-1.81 3.019z"/></svg></span></h2>
 <p><a class="md-tag" href="https://github.com/DeepSpace2/plugnpin/releases/tag/v1.0.0" target="_blank"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7.75 6.5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5"/><path d="M2.5 1h8.44a1.5 1.5 0 0 1 1.06.44l10.25 10.25a1.5 1.5 0 0 1 0 2.12l-8.44 8.44a1.5 1.5 0 0 1-2.12 0L1.44 12A1.5 1.5 0 0 1 1 10.94V2.5A1.5 1.5 0 0 1 2.5 1m0 1.5v8.44l10.25 10.25 8.44-8.44L10.94 2.5Z"/></svg></span> 1.0.0</a></p>
-<p>PlugNPiN optionally exposes runtime and application metrics in Prometheus format<br />
+<p>PlugNPiN optionally exposes runtime and application metrics in Prometheus format
 by using the <code>METRICS</code> environment variable (<a href="../configuration/#optional">Configuration → Environment Variables</a>).</p>
-<p>By default the metrics endpoint is available at <code>http://&lt;plugnpin-host&gt;:9100/metrics</code><br />
+<p>By default the metrics endpoint is available at <code>http://&lt;plugnpin-host&gt;:9100/metrics</code>
 and the port can be set with the <code>METRICS_SERVER_PORT</code> environment variable.</p>
 <h3 id="example-prometheus-scrape-configuration">Example Prometheus Scrape Configuration</h3>
 <div class="language-yaml highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">scrape_configs</span><span class="p">:</span>
