@@ -63,6 +63,7 @@ func (p *Client) Logout() error {
 	if p.sid == "" {
 		return nil
 	}
+	log.Debug("Logging out from Pi-Hole")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -74,6 +75,8 @@ func (p *Client) Logout() error {
 	p.sid = ""
 	if statusCode >= 400 {
 		log.Warn("Pi-Hole logout returned non-success status", "status", statusCode)
+	} else {
+		log.Debug("Logged out from Pi-Hole")
 	}
 	return nil
 }
