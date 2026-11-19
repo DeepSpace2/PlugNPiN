@@ -25,6 +25,9 @@ PlugNPiN discovers services by scanning for Docker containers that have the foll
   Multiple domains are supported (since version [:octicons-tag-24: 0.10.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v0.10.0){ .md-tag target="_blank" }) and should be comma-separated,
    for example `domain1.local,domain2.local`.
 
+!!! note
+    Starting with version [:octicons-tag-24: 1.1.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v1.1.0){ .md-tag target="_blank" }, label keys are matched case-**insensitively**. For example, `plugnpin.ip` is equivalent to `plugNPiN.ip`.
+
 The application operates in two complementary modes to keep your services synchronized:
 
 1. **Real-Time Event Listening**: The application actively listens for Docker container events. When a container with the required labels is **started**, **stopped**, or **killed**, the tool immediately adds or removes the corresponding DNS and proxy host entries. This ensures that your services are updated in real-time as containers change state.
