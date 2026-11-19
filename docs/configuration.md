@@ -48,6 +48,9 @@ PlugNPiN supports [Docker Secrets](https://docs.docker.com/compose/how-tos/use-s
 
 Use the following labels on your containers to enable specific features
 
+!!! note
+    Starting with version [:octicons-tag-24: 1.1.0](https://github.com/DeepSpace2/plugnpin/releases/tag/v1.1.0){ .md-tag target="_blank" }, label keys are matched case-**insensitively**. For example, `plugnpin.options.createonhealthy` is equivalent to `plugNPiN.options.createOnHealthy`.
+
 ### General Options
 
 | Label {: style="width:45%"} | Description | Default {: style="width:10%"} | Notes |

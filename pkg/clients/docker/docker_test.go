@@ -4,6 +4,7 @@ package docker
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/deepspace2/plugnpin/pkg/errors"
@@ -359,6 +360,171 @@ func TestGetValuesFromContainerLabels(t *testing.T) {
 			} else {
 				assert.Nil(t, opts)
 			}
+		})
+	}
+}
+
+func TestGetValuesFromLabels_CaseInsensitiveKeys(t *testing.T) {
+	testCases := []struct {
+		name                    string
+		labels                  map[string]string
+		expectedIP              string
+		expectedURLs            []string
+		expectedPort            int
+		expectedScheme          string
+		expectedCreateOnHealthy bool
+		expectedTargetDomain    string
+	}{
+		{
+			name: "Lowercased keys",
+			labels: map[string]string{
+				strings.ToLower(IpLabel):                            "192.168.1.10:8080",
+				strings.ToLower(UrlLabel):                           "my-service.example.com,my-service.local",
+				strings.ToLower(npmOptionsSchemeLabel):              "HTTPS",
+				strings.ToLower(GeneralOptionsCreateOnHealthyLabel): "true",
+				strings.ToLower(piholeOptionsTargetDomainLabel):     "target.home",
+			},
+			expectedIP:              "192.168.1.10",
+			expectedURLs:            []string{"my-service.example.com", "my-service.local"},
+			expectedPort:            8080,
+			expectedScheme:          "https",
+			expectedCreateOnHealthy: true,
+			expectedTargetDomain:    "target.home",
+		},
+		{
+			name: "Arbitrary casing",
+			labels: map[string]string{
+				"PlugNPiN.Ip":  "10.0.0.5:3000",
+				"PLUGNPIN.URL": "mixed.home",
+			},
+			expectedIP:     "10.0.0.5",
+			expectedURLs:   []string{"mixed.home"},
+			expectedPort:   3000,
+			expectedScheme: "http",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ip, urls, port, opts, err := GetValuesFromLabels(tc.labels)
+
+			assert.NoError(t, err)
+			assert.Equal(t, tc.expectedIP, ip)
+			assert.Equal(t, tc.expectedURLs, urls)
+			assert.Equal(t, tc.expectedPort, port)
+			if assert.NotNil(t, opts) {
+				assert.Equal(t, tc.expectedScheme, opts.NPM.ForwardScheme)
+				assert.Equal(t, tc.expectedCreateOnHealthy, opts.GeneralOptions.CreateOnHealthy)
+				assert.Equal(t, tc.expectedTargetDomain, opts.Pihole.TargetDomain)
+			}
+		})
+	}
+}
+
+func TestGetValuesFromLabels_AllLabelsWithLowercasedKeys(t *testing.T) {
+	labels := map[string]string{
+		strings.ToLower(IpLabel):                             "192.168.1.10:8080",
+		strings.ToLower(UrlLabel):                            "my-service.example.com",
+		strings.ToLower(GeneralOptionsCreateOnHealthyLabel):  "true",
+		strings.ToLower(adguardHomeOptionsTargetDomainLabel): "adguard.target",
+		strings.ToLower(npmOptionsAccessListNameLabel):       "my-access-list",
+		strings.ToLower(npmOptionsAdvancedConfigLabel):       "proxy_set_header X-Test 1;",
+		strings.ToLower(npmOptionsBlockExploitsLabel):        "false",
+		strings.ToLower(npmOptionsCachingEnabledLabel):       "true",
+		strings.ToLower(npmOptionsCertificateNameLabel):      "my-certificate",
+		strings.ToLower(npmOptionsHTTP2SupportLabel):         "true",
+		strings.ToLower(npmOptionsHstsEnabledLabel):          "true",
+		strings.ToLower(npmOptionsHstsSubdomainsLabel):       "true",
+		strings.ToLower(npmOptionsSchemeLabel):               "https",
+		strings.ToLower(npmOptionsSslForcedLabel):            "true",
+		strings.ToLower(npmOptionsWebsocketsSupportLabel):    "true",
+		strings.ToLower(piholeOptionsTargetDomainLabel):      "pihole.target",
+	}
+
+	_, _, _, opts, err := GetValuesFromLabels(labels)
+
+	assert.NoError(t, err)
+	if assert.NotNil(t, opts) {
+		assert.True(t, opts.GeneralOptions.CreateOnHealthy)
+		assert.Equal(t, "adguard.target", opts.AdguardHome.TargetDomain)
+		assert.Equal(t, "my-access-list", opts.NPM.AccessListName)
+		assert.Equal(t, "proxy_set_header X-Test 1;", opts.NPM.AdvancedConfig)
+		assert.False(t, opts.NPM.BlockExploits)
+		assert.True(t, opts.NPM.CachingEnabled)
+		assert.Equal(t, "my-certificate", opts.NPM.CertificateName)
+		assert.True(t, opts.NPM.HTTP2Support)
+		assert.True(t, opts.NPM.HstsEnabled)
+		assert.True(t, opts.NPM.HstsSubdomains)
+		assert.Equal(t, "https", opts.NPM.ForwardScheme)
+		assert.True(t, opts.NPM.SslForced)
+		assert.True(t, opts.NPM.AllowWebsocketUpgrade)
+		assert.Equal(t, "pihole.target", opts.Pihole.TargetDomain)
+	}
+}
+
+func TestGetValuesFromLabels_CanonicalKeyTakesPrecedence(t *testing.T) {
+	labels := map[string]string{
+		"plugNPiN.ip":  "1.1.1.1:1111",
+		"plugnpin.ip":  "2.2.2.2:2222",
+		"plugNPiN.url": "canonical.home",
+		"PLUGNPIN.URL": "ignored.home",
+	}
+
+	ip, urls, port, opts, err := GetValuesFromLabels(labels)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "1.1.1.1", ip)
+	assert.Equal(t, []string{"canonical.home"}, urls)
+	assert.Equal(t, 1111, port)
+	assert.NotNil(t, opts)
+}
+
+func TestHasRequiredLabels(t *testing.T) {
+	testCases := []struct {
+		name     string
+		labels   map[string]string
+		expected bool
+	}{
+		{
+			name:     "Canonical labels",
+			labels:   map[string]string{IpLabel: "1.1.1.1:80", UrlLabel: "service.home"},
+			expected: true,
+		},
+		{
+			name:     "Differently cased labels",
+			labels:   map[string]string{"PLUGNPIN.IP": "1.1.1.1:80", "plugnpin.Url": "service.home"},
+			expected: true,
+		},
+		{
+			name:     "Missing url",
+			labels:   map[string]string{IpLabel: "1.1.1.1:80"},
+			expected: false,
+		},
+		{
+			name:     "Missing ip",
+			labels:   map[string]string{UrlLabel: "service.home"},
+			expected: false,
+		},
+		{
+			name:     "Unrelated labels",
+			labels:   map[string]string{"com.example.foo": "bar"},
+			expected: false,
+		},
+		{
+			name:     "Empty labels",
+			labels:   map[string]string{},
+			expected: false,
+		},
+		{
+			name:     "Nil labels",
+			labels:   nil,
+			expected: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.expected, hasRequiredLabels(tc.labels))
 		})
 	}
 }
