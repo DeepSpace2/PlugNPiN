@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/filters"
 	dockerSdk "github.com/docker/go-sdk/client"
 
 	"github.com/deepspace2/plugnpin/pkg/clients/adguardhome"
@@ -32,28 +31,6 @@ type GeneralOptions struct {
 
 var log = logging.GetLogger("docker")
 
-const (
-	GeneralOptionsCreateOnHealthyLabel = "plugNPiN.options.createOnHealthy"
-	IpLabel                            = "plugNPiN.ip"
-	UrlLabel                           = "plugNPiN.url"
-
-	adguardHomeOptionsTargetDomainLabel = "plugNPiN.adguardHomeOptions.targetDomain"
-	npmOptionsAccessListNameLabel       = "plugNPiN.npmOptions.accessListName"
-	npmOptionsAdvancedConfigLabel       = "plugNPiN.npmOptions.advancedConfig"
-	npmOptionsBlockExploitsLabel        = "plugNPiN.npmOptions.blockExploits"
-	npmOptionsCachingEnabledLabel       = "plugNPiN.npmOptions.cachingEnabled"
-	npmOptionsCertificateNameLabel      = "plugNPiN.npmOptions.certificateName"
-	npmOptionsHTTP2SupportLabel         = "plugNPiN.npmOptions.http2Support"
-	npmOptionsHstsEnabledLabel          = "plugNPiN.npmOptions.hstsEnabled"
-	npmOptionsHstsSubdomainsLabel       = "plugNPiN.npmOptions.hstsSubdomains"
-	npmOptionsSchemeLabel               = "plugNPiN.npmOptions.scheme"
-	npmOptionsSslForcedLabel            = "plugNPiN.npmOptions.forceSsl"
-	npmOptionsWebsocketsSupportLabel    = "plugNPiN.npmOptions.websocketsSupport"
-	piholeOptionsTargetDomainLabel      = "plugNPiN.piholeOptions.targetDomain"
-)
-
-var labels []string = []string{IpLabel, UrlLabel}
-
 func NewClient(host string) (*Client, error) {
 	client, err := dockerSdk.New(context.Background(), dockerSdk.WithDockerHost(host))
 	var displayHost string
@@ -65,20 +42,26 @@ func NewClient(host string) (*Client, error) {
 	return &Client{Client: client, Host: host, DisplayHost: displayHost}, err
 }
 
+// GetRelevantContainers returns the running containers that carry both required
+// labels. The filtering happens here instead of in the Docker API because the
+// API's label filter is case-sensitive, while PlugNPiN matches label keys
+// case-insensitively.
 func (d *Client) GetRelevantContainers() ([]container.Summary, error) {
-	f := filters.NewArgs()
-	for _, label := range labels {
-		f.Add("label", label)
+	log.Info(fmt.Sprintf("Scanning running containers for the %v and %v labels (case-insensitive)", IpLabel, UrlLabel), "host", d.DisplayHost)
+
+	containers, err := d.ContainerList(context.Background(), container.ListOptions{})
+	if err != nil {
+		return nil, err
 	}
 
-	log.Info(fmt.Sprintf("Getting containers with labels: %v", strings.Join(labels, ", ")), "host", d.DisplayHost)
+	relevantContainers := make([]container.Summary, 0, len(containers))
+	for _, c := range containers {
+		if hasRequiredLabels(c.Labels) {
+			relevantContainers = append(relevantContainers, c)
+		}
+	}
 
-	return d.ContainerList(
-		context.Background(),
-		container.ListOptions{
-			Filters: f,
-		},
-	)
+	return relevantContainers, nil
 }
 
 func GetParsedContainerName(container container.Summary) string {
@@ -86,11 +69,11 @@ func GetParsedContainerName(container container.Summary) string {
 }
 
 func GetValuesFromLabels(labels map[string]string) (ip string, urls []string, port int, opts *ClientOptions, err error) {
-	ip, ok := labels[IpLabel]
+	ip, ok := getLabel(labels, IpLabel)
 	if !ok {
 		return "", nil, 0, nil, &errors.NonExistingLabelsError{Msg: fmt.Sprintf("missing %s label", IpLabel)}
 	}
-	urlsString, ok := labels[UrlLabel]
+	urlsString, ok := getLabel(labels, UrlLabel)
 	if !ok {
 		return "", nil, 0, nil, &errors.NonExistingLabelsError{Msg: fmt.Sprintf("missing %s label", UrlLabel)}
 	}
@@ -111,19 +94,22 @@ func GetValuesFromLabels(labels map[string]string) (ip string, urls []string, po
 
 	opts = &ClientOptions{}
 
-	generalOptionsCreateOnHealthy, _ := strconv.ParseBool(labels[GeneralOptionsCreateOnHealthyLabel])
+	generalOptionsCreateOnHealthyValue, _ := getLabel(labels, GeneralOptionsCreateOnHealthyLabel)
+	generalOptionsCreateOnHealthy, _ := strconv.ParseBool(generalOptionsCreateOnHealthyValue)
 	opts.GeneralOptions = GeneralOptions{CreateOnHealthy: generalOptionsCreateOnHealthy}
 
-	npmOptionsBlockExploitsLabelValue, exists := labels[npmOptionsBlockExploitsLabel]
+	npmOptionsBlockExploitsLabelValue, exists := getLabel(labels, npmOptionsBlockExploitsLabel)
 	if !exists {
 		npmOptionsBlockExploitsLabelValue = "true"
 	}
 
 	npmOptionsBlockExploits, _ := strconv.ParseBool(npmOptionsBlockExploitsLabelValue)
-	npmOptionsWebsocketsSupport, _ := strconv.ParseBool(labels[npmOptionsWebsocketsSupportLabel])
-	npmOptionsCachingEnabled, _ := strconv.ParseBool(labels[npmOptionsCachingEnabledLabel])
+	npmOptionsWebsocketsSupportValue, _ := getLabel(labels, npmOptionsWebsocketsSupportLabel)
+	npmOptionsWebsocketsSupport, _ := strconv.ParseBool(npmOptionsWebsocketsSupportValue)
+	npmOptionsCachingEnabledValue, _ := getLabel(labels, npmOptionsCachingEnabledLabel)
+	npmOptionsCachingEnabled, _ := strconv.ParseBool(npmOptionsCachingEnabledValue)
 
-	npmOptionsScheme, exists := labels[npmOptionsSchemeLabel]
+	npmOptionsScheme, exists := getLabel(labels, npmOptionsSchemeLabel)
 	if !exists {
 		npmOptionsScheme = "http"
 	}
@@ -134,13 +120,17 @@ func GetValuesFromLabels(labels map[string]string) (ip string, urls []string, po
 		}
 	}
 
-	npmOptionsAdvancedConfig := labels[npmOptionsAdvancedConfigLabel]
-	npmOptionsCertificateName := labels[npmOptionsCertificateNameLabel]
-	npmOptionsAccessListName := labels[npmOptionsAccessListNameLabel]
-	npmOptionsHTTP2Support, _ := strconv.ParseBool(labels[npmOptionsHTTP2SupportLabel])
-	npmOptionsHstsEnabled, _ := strconv.ParseBool(labels[npmOptionsHstsEnabledLabel])
-	npmOptionsHstsSubdomains, _ := strconv.ParseBool(labels[npmOptionsHstsSubdomainsLabel])
-	npmOptionsSslForced, _ := strconv.ParseBool(labels[npmOptionsSslForcedLabel])
+	npmOptionsAdvancedConfig, _ := getLabel(labels, npmOptionsAdvancedConfigLabel)
+	npmOptionsCertificateName, _ := getLabel(labels, npmOptionsCertificateNameLabel)
+	npmOptionsAccessListName, _ := getLabel(labels, npmOptionsAccessListNameLabel)
+	npmOptionsHTTP2SupportValue, _ := getLabel(labels, npmOptionsHTTP2SupportLabel)
+	npmOptionsHTTP2Support, _ := strconv.ParseBool(npmOptionsHTTP2SupportValue)
+	npmOptionsHstsEnabledValue, _ := getLabel(labels, npmOptionsHstsEnabledLabel)
+	npmOptionsHstsEnabled, _ := strconv.ParseBool(npmOptionsHstsEnabledValue)
+	npmOptionsHstsSubdomainsValue, _ := getLabel(labels, npmOptionsHstsSubdomainsLabel)
+	npmOptionsHstsSubdomains, _ := strconv.ParseBool(npmOptionsHstsSubdomainsValue)
+	npmOptionsSslForcedValue, _ := getLabel(labels, npmOptionsSslForcedLabel)
+	npmOptionsSslForced, _ := strconv.ParseBool(npmOptionsSslForcedValue)
 
 	opts.NPM = &npm.NpmProxyHostOptions{
 		AccessListName:        npmOptionsAccessListName,
@@ -156,13 +146,13 @@ func GetValuesFromLabels(labels map[string]string) (ip string, urls []string, po
 		SslForced:             npmOptionsSslForced,
 	}
 
-	piholeOptionsTargetDomain := labels[piholeOptionsTargetDomainLabel]
+	piholeOptionsTargetDomain, _ := getLabel(labels, piholeOptionsTargetDomainLabel)
 
 	opts.Pihole = &pihole.PiHoleOptions{
 		TargetDomain: piholeOptionsTargetDomain,
 	}
 
-	adguardHomeOptionsTargetDomain := labels[adguardHomeOptionsTargetDomainLabel]
+	adguardHomeOptionsTargetDomain, _ := getLabel(labels, adguardHomeOptionsTargetDomainLabel)
 
 	opts.AdguardHome = &adguardhome.AdguardHomeOptions{
 		TargetDomain: adguardHomeOptionsTargetDomain,
