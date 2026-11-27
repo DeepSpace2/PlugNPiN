@@ -8,7 +8,6 @@ import (
 	"maps"
 	"os"
 	"slices"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -341,8 +340,9 @@ func TestE2E(t *testing.T) {
 				docker.IpLabel:  "1.1.1.1:8080",
 				docker.UrlLabel: "busybox1.home",
 			},
-			name:       testContainerName + "-1",
-			hostConfig: &containerApi.HostConfig{},
+			name:         testContainerName + "-1",
+			expectedURLs: []string{"busybox1.home"},
+			hostConfig:   &containerApi.HostConfig{},
 		},
 		{
 			image: testContainerImage,
@@ -351,8 +351,22 @@ func TestE2E(t *testing.T) {
 				docker.IpLabel:  "2.2.2.2:8080",
 				docker.UrlLabel: "busybox2.home,busybox2.local",
 			},
-			name:       testContainerName + "-2",
-			hostConfig: &containerApi.HostConfig{},
+			name:         testContainerName + "-2",
+			expectedURLs: []string{"busybox2.home", "busybox2.local"},
+			hostConfig:   &containerApi.HostConfig{},
+		},
+		{
+			image: testContainerImage,
+			cmd:   []string{"tail", "-f", "/dev/null"},
+			labels: map[string]string{
+				// Label keys are matched case-insensitively, so this container must be
+				// discovered and handled like the ones using the canonical spelling.
+				"pLuGnPiN.IP":  "5.5.5.5:8080",
+				"PLUGNPIN.URL": "busybox3.home",
+			},
+			name:         testContainerName + "-3-mixed-case-labels",
+			expectedURLs: []string{"busybox3.home"},
+			hostConfig:   &containerApi.HostConfig{},
 		},
 	}
 	containers := append(infraContainers, testContainers...)
@@ -390,52 +404,52 @@ func TestE2E(t *testing.T) {
 		t.Fatalf("Failed to get AdGuard Home DNS rewrites: %v", err)
 	}
 
-	for _, container := range containers {
-		urlsString, dockerUrlLabelExists := container.labels[docker.UrlLabel]
-		if dockerUrlLabelExists {
-			urls := strings.Split(urlsString, ",")
-			for _, url := range urls {
-				piholeDnsRecordIP, exists := piholeDnsRecords[pihole.DomainName(url)]
+	for _, testContainer := range testContainers {
+		_, actualURLs, _, _, err := docker.GetValuesFromLabels(testContainer.labels)
+		require.NoError(t, err, "Runtime should parse labels for %s", testContainer.name)
+		require.Equal(t, testContainer.expectedURLs, actualURLs, "Runtime should parse the expected URLs for %s", testContainer.name)
 
-				// Assert that the "add" functionality worked
-				require.True(t, exists, "A pihole DNS record should exist for the url %s", url)
-				require.Equal(t, pihole.IP(npmClient.GetIP()), piholeDnsRecordIP, "The pihole DNS record should point to the NPM container's IP")
-				require.Contains(t, npmProxyHosts, url, "The NPM proxy hosts should contain the url %s", url)
+		for _, url := range testContainer.expectedURLs {
+			piholeDnsRecordIP, exists := piholeDnsRecords[pihole.DomainName(url)]
 
-				adguardHomeDnsRewriteIP, exists := adguardDnsRewrites[adguardhome.DomainName(url)]
-				require.True(t, exists, "An AdGuard Home DNS rewrite should exist for the url %s", url)
-				require.Equal(t, adguardhome.IP(npmClient.GetIP()), adguardHomeDnsRewriteIP, "The AdGuard Home DNS rewrite should point to the NPM container's IP")
-			}
+			// Assert that the "add" functionality worked
+			require.True(t, exists, "A pihole DNS record should exist for the url %s", url)
+			require.Equal(t, pihole.IP(npmClient.GetIP()), piholeDnsRecordIP, "The pihole DNS record should point to the NPM container's IP")
+			require.Contains(t, npmProxyHosts, url, "The NPM proxy hosts should contain the url %s", url)
 
-			// Deleting to assert delete functionality
-			_, err = piholeClient.DeleteDnsRecords(urls)
-			require.NoError(t, err, "Failed to delete Pi-Hole DNS records")
+			adguardHomeDnsRewriteIP, exists := adguardDnsRewrites[adguardhome.DomainName(url)]
+			require.True(t, exists, "An AdGuard Home DNS rewrite should exist for the url %s", url)
+			require.Equal(t, adguardhome.IP(npmClient.GetIP()), adguardHomeDnsRewriteIP, "The AdGuard Home DNS rewrite should point to the NPM container's IP")
+		}
 
-			_, err = npmClient.DeleteProxyHosts(urls)
-			require.NoError(t, err, "Failed to delete NPM proxy hosts")
+		// Deleting to assert delete functionality
+		_, err = piholeClient.DeleteDnsRecords(testContainer.expectedURLs)
+		require.NoError(t, err, "Failed to delete Pi-Hole DNS records")
 
-			_, err = adguardHomeClient.DeleteDnsRewrites(urls, npmClient.GetIP())
-			require.NoError(t, err, "Failed to delete AdGuard Home DNS rewrites")
+		_, err = npmClient.DeleteProxyHosts(testContainer.expectedURLs)
+		require.NoError(t, err, "Failed to delete NPM proxy hosts")
 
-			piholeDnsRecords, err := piholeClient.GetDnsRecords()
-			if err != nil {
-				t.Fatalf("Failed to get pihole DNS records after delete: %v", err)
-			}
-			npmProxyHosts, err := npmClient.GetProxyHosts()
-			if err != nil {
-				t.Fatalf("Failed to get NPM proxy hosts after delete: %v", err)
-			}
-			adguardDnsRewrites, err := adguardHomeClient.GetDnsRewrites()
-			if err != nil {
-				t.Fatalf("Failed to get AdGuard Home DNS rewrites after delete: %v", err)
-			}
+		_, err = adguardHomeClient.DeleteDnsRewrites(testContainer.expectedURLs, npmClient.GetIP())
+		require.NoError(t, err, "Failed to delete AdGuard Home DNS rewrites")
 
-			// Assert that the "delete" functionality worked
-			for _, url := range urls {
-				require.NotContains(t, piholeDnsRecords, pihole.DomainName(url), "The pihole DNS record should be deleted for %s", url)
-				require.NotContains(t, npmProxyHosts, url, "The NPM proxy host should be deleted for %s", url)
-				require.NotContains(t, adguardDnsRewrites, url, "The AdGuard Home DNS rewrite should be deleted for %s", url)
-			}
+		piholeDnsRecords, err = piholeClient.GetDnsRecords()
+		if err != nil {
+			t.Fatalf("Failed to get pihole DNS records after delete: %v", err)
+		}
+		npmProxyHosts, err = npmClient.GetProxyHosts()
+		if err != nil {
+			t.Fatalf("Failed to get NPM proxy hosts after delete: %v", err)
+		}
+		adguardDnsRewrites, err = adguardHomeClient.GetDnsRewrites()
+		if err != nil {
+			t.Fatalf("Failed to get AdGuard Home DNS rewrites after delete: %v", err)
+		}
+
+		// Assert that the "delete" functionality worked
+		for _, url := range testContainer.expectedURLs {
+			require.NotContains(t, piholeDnsRecords, pihole.DomainName(url), "The pihole DNS record should be deleted for %s", url)
+			require.NotContains(t, npmProxyHosts, url, "The NPM proxy host should be deleted for %s", url)
+			require.NotContains(t, adguardDnsRewrites, url, "The AdGuard Home DNS rewrite should be deleted for %s", url)
 		}
 	}
 }
@@ -551,6 +565,86 @@ func TestE2E_CreateOnHealthy(t *testing.T) {
 		_, exists := npmProxyHosts[testURL]
 		return !exists
 	}, 10*time.Second, 1*time.Second, "Entry should be removed after container dies")
+
+	cancel()
+	wg.Wait()
+}
+
+func TestE2E_CaseInsensitiveLabels_Events(t *testing.T) {
+	logger.Info("In TestE2E_CaseInsensitiveLabels_Events")
+
+	conf, err := getEnvVars()
+	require.NoError(t, err, "Failed to load e2e test env vars")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	dockerCli, err := dockerApi.NewClientWithOpts(dockerApi.FromEnv)
+	require.NoError(t, err, "Failed to create docker api client")
+
+	workingDir, err := os.Getwd()
+	require.NoError(t, err, "Failed to get working directory")
+
+	infraContainers := getInfraContainers(conf, workingDir)
+	dockerClient, _, npmClient, _ := setup(t, ctx, dockerCli, infraContainers)
+	t.Cleanup(func() {
+		cleanup(dockerCli, infraContainers, npmClient)
+	})
+
+	testURL := "mixed-case-event-test.home"
+	testContainers := []Container{
+		{
+			image: testContainerImage,
+			cmd:   []string{"tail", "-f", "/dev/null"},
+			labels: map[string]string{
+				"pLuGnPiN.IP":  "5.5.5.5:8080",
+				"PLUGNPIN.URL": testURL,
+			},
+			name:       testContainerName + "-mixed-case-events",
+			hostConfig: &containerApi.HostConfig{},
+		},
+	}
+	require.NoError(t, pullImage(ctx, dockerCli, testContainers[0].image), "Failed to pull test container image")
+
+	proc := processor.New(
+		map[string]*docker.Client{dockerClient.Host: dockerClient},
+		nil,
+		nil,
+		npmClient,
+		false,
+	)
+
+	var wg sync.WaitGroup
+	wg.Go(func() {
+		proc.ListenForEvents(ctx)
+	})
+	// Allow the event stream to subscribe before starting the test container.
+	time.Sleep(time.Second)
+
+	startRequiredContainers(t, ctx, dockerCli, testContainers)
+	t.Cleanup(func() {
+		_ = dockerCli.ContainerRemove(context.Background(), testContainers[0].id, containerApi.RemoveOptions{Force: true})
+	})
+
+	require.Eventually(t, func() bool {
+		npmProxyHosts, err := npmClient.GetProxyHosts()
+		if err != nil {
+			return false
+		}
+		_, exists := npmProxyHosts[testURL]
+		return exists
+	}, 10*time.Second, time.Second, "Mixed-case labels should create the NPM proxy host on start")
+
+	require.NoError(t, dockerCli.ContainerStop(ctx, testContainers[0].id, containerApi.StopOptions{}), "Failed to stop test container")
+
+	require.Eventually(t, func() bool {
+		npmProxyHosts, err := npmClient.GetProxyHosts()
+		if err != nil {
+			return false
+		}
+		_, exists := npmProxyHosts[testURL]
+		return !exists
+	}, 10*time.Second, time.Second, "Mixed-case labels should remove the NPM proxy host on stop")
 
 	cancel()
 	wg.Wait()
